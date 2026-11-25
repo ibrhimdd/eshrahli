@@ -28,6 +28,8 @@ jobs:
         working-directory: backend
         run: npm run check
 
+      - name: Validate Firestore index JSON
+        run: node -e 'JSON.parse(require("node:fs").readFileSync("firestore.indexes.json", "utf8")); JSON.parse(require("node:fs").readFileSync("firebase.json", "utf8"));'
       - name: Check frontend JavaScript syntax
         run: |
           node --check --input-type=module < frontend/firebase-client.js
