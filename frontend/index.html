@@ -595,7 +595,7 @@ img{max-width:100%}
     sendBtn.textContent = "بيفكر...";
     try {
       var response;
-      if (typeof window.ESHRAHLI_API_REQUEST === "function") {
+      if (typeof window.ESHRAHLI_API_REQUEST === "function" && window.ESHRAHLI_IS_AUTHENTICATED === true) {
         if (!activeSessionId) {
           var createResponse = await window.ESHRAHLI_API_REQUEST("/api/sessions", {
             method: "POST", headers: { "Content-Type": "application/json" },
