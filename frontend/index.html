@@ -229,6 +229,8 @@ img{max-width:100%}
   <p id="accountStatus" class="account-status" role="status" aria-live="polite">يتم تجهيز الحساب...</p>
   <h3>ملفاتي</h3>
   <div id="documentsList" hidden></div>
+  <h3>محادثاتك</h3>
+  <div id="sessionsList" hidden></div>
 </dialog>
 
 <script src="./firebase-config.js"></script>
@@ -408,6 +410,7 @@ img{max-width:100%}
   var drawing = false;
   var followupCount = 0;
   var chatHistory = [];
+  var activeSessionId = null;
   var chatReply = document.getElementById("chatReply");
   var FOLLOWUP_SLOTS = [[340, 940], [500, 970], [660, 940]];
 
@@ -577,6 +580,7 @@ img{max-width:100%}
     emptyState.hidden = true;
     hint.hidden = true;
     chatHistory = [];
+    activeSessionId = null;
     chatReply.hidden = true;
     animateBoard(data).then(function(){
       hasDrawnOnce = true;
@@ -590,17 +594,34 @@ img{max-width:100%}
     var previousLabel = sendBtn.textContent;
     sendBtn.textContent = "بيفكر...";
     try {
-      var response = await fetch(API_BASE + "/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: message, history: chatHistory, model: selectedModel })
-      });
+      var response;
+      if (typeof window.ESHRAHLI_API_REQUEST === "function") {
+        if (!activeSessionId) {
+          var createResponse = await window.ESHRAHLI_API_REQUEST("/api/sessions", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: message.slice(0, 72) })
+          });
+          var created = await createResponse.json();
+          if (!createResponse.ok) throw new Error(created.error || "تعذر حفظ المحادثة.");
+          activeSessionId = created.session.id;
+        }
+        response = await window.ESHRAHLI_API_REQUEST("/api/sessions/" + encodeURIComponent(activeSessionId) + "/messages", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: message, model: selectedModel })
+        });
+      } else {
+        response = await fetch(API_BASE + "/api/chat", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: message, history: chatHistory, model: selectedModel })
+        });
+      }
       var data = await response.json();
       if (!response.ok) throw new Error(data.error || "تعذر الحصول على إجابة.");
       chatHistory.push({ role: "user", content: message });
       chatHistory.push({ role: "assistant", content: data.reply });
       chatReply.textContent = data.reply;
       chatReply.hidden = false;
+      if (typeof window.ESHRAHLI_REFRESH_SESSIONS === "function") window.ESHRAHLI_REFRESH_SESSIONS();
     } catch (error) {
       alert(error.message || "تعذر الاتصال بالمدرس الذكي.");
     } finally {
@@ -661,6 +682,7 @@ img{max-width:100%}
     hasDrawnOnce = false;
     followupCount = 0;
     chatHistory = [];
+    activeSessionId = null;
     chatReply.hidden = true;
     clearBoard();
     emptyState.hidden = false;
@@ -680,6 +702,24 @@ img{max-width:100%}
   document.getElementById("zoomOut").addEventListener("click", function(){ zoom -= 0.2; applyZoom(); });
 
   clearBoard();
+
+  window.addEventListener("eshrahli:load-session", function(event){
+    var session = event.detail || {};
+    activeSessionId = session.id || null;
+    chatHistory = Array.isArray(session.messages) ? session.messages.map(function(item){
+      return { role: item.role, content: item.content };
+    }) : [];
+    var lastAssistant = chatHistory.slice().reverse().find(function(item){ return item.role === "assistant"; });
+    chatReply.textContent = lastAssistant ? lastAssistant.content : "ابدأ سؤالك في هذه المحادثة.";
+    chatReply.hidden = false;
+    input.placeholder = "تابع سؤالك في المحادثة المحفوظة...";
+    sendBtn.textContent = "اسأل";
+    dialogCloseIfNeeded();
+  });
+  function dialogCloseIfNeeded(){
+    var accountDialog = document.getElementById("accountDialog");
+    if (accountDialog && accountDialog.open) accountDialog.close();
+  }
 })();
 </script>
 </body>
