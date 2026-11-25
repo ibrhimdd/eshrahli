@@ -87,6 +87,7 @@ import {
   }
 
   window.ESHRAHLI_API_REQUEST = apiRequest;
+  window.ESHRAHLI_IS_AUTHENTICATED = false;
 
   async function loadSessions() {
     if (!currentUser || !sessionsList) return;
@@ -263,6 +264,7 @@ import {
     auth = getAuth(app);
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
+      window.ESHRAHLI_IS_AUTHENTICATED = !!user;
       logoutButton.hidden = !user;
       authForm.hidden = !!user;
       uploadForm.hidden = !user;
