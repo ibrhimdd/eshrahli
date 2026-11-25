@@ -18,6 +18,7 @@ import {
   const uploadForm = document.getElementById("pdfUploadForm");
   const fileInput = document.getElementById("pdfFile");
   const docsList = document.getElementById("documentsList");
+  const sessionsList = document.getElementById("sessionsList");
   const askForm = document.getElementById("askDocumentForm");
   const askDocumentSelect = document.getElementById("askDocumentSelect");
   const askQuestionInput = document.getElementById("askQuestion");
@@ -85,6 +86,43 @@ import {
     return fetch(apiBase + path, { ...options, headers });
   }
 
+  window.ESHRAHLI_API_REQUEST = apiRequest;
+
+  async function loadSessions() {
+    if (!currentUser || !sessionsList) return;
+    try {
+      const response = await apiRequest("/api/sessions");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "تعذر تحميل المحادثات.");
+      sessionsList.replaceChildren();
+      (data.sessions || []).forEach((session) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "document-item";
+        button.textContent = session.title || "محادثة";
+        button.addEventListener("click", async () => {
+          const detailResponse = await apiRequest("/api/sessions/" + encodeURIComponent(session.id));
+          const detail = await detailResponse.json();
+          if (!detailResponse.ok) return showStatus(detail.error || "تعذر فتح المحادثة.", true);
+          window.dispatchEvent(new CustomEvent("eshrahli:load-session", {
+            detail: { id: session.id, messages: detail.messages || [] }
+          }));
+        });
+        sessionsList.appendChild(button);
+      });
+      if (!(data.sessions || []).length) {
+        const empty = document.createElement("p");
+        empty.className = "account-muted";
+        empty.textContent = "لم تحفظ أي محادثات بعد. ابدأ بسؤال المدرس بعد تسجيل الدخول.";
+        sessionsList.appendChild(empty);
+      }
+    } catch (error) {
+      showStatus(error.message, true);
+    }
+  }
+
+  window.ESHRAHLI_REFRESH_SESSIONS = loadSessions;
+
   async function loadDocuments() {
     try {
       const response = await apiRequest("/api/documents");
@@ -126,6 +164,7 @@ import {
       currentUser = result.user;
       showStatus("تم تسجيل الدخول بنجاح.");
       await loadDocuments();
+      await loadSessions();
     } catch (error) {
       showStatus(error.message || "تعذر تسجيل الدخول.", true);
     }
@@ -230,8 +269,8 @@ import {
       docsList.hidden = !user;
       askForm.hidden = !user;
       showStatus(user ? "أهلًا " + (user.displayName || user.email) + " — ملفاتك محفوظة في حسابك." : "سجّل الدخول للوصول إلى ملفاتك.");
-      if (user) await loadDocuments();
-      else renderDocuments([]);
+      if (user) { await loadDocuments(); await loadSessions(); sessionsList.hidden = false; }
+      else { renderDocuments([]); if (sessionsList) { sessionsList.hidden = true; sessionsList.replaceChildren(); } }
     });
   } catch (error) {
     showStatus("تعذر تشغيل Firebase: " + error.message, true);
