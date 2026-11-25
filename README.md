@@ -518,3 +518,69 @@ Copy-Item .env.example .env
 - تم تحديث الاعتمادات إلى Firebase Admin `^14.5.1` وPDF.js `^6.5.438` وفق الإصدارات المنشورة حاليًا.
 - حد رفع PDF الافتراضي أصبح 4 ميجابايت و100 صفحة، ويمكن تغييره عبر `PDF_MAX_BYTES` و`PDF_MAX_PAGES` بما يتناسب مع بيئة الاستضافة.
 - أضيف GitHub Actions workflow لتشغيل فحص الصياغة والاختبارات تلقائيًا على Node 22 عند تغيير ملفات الباك إند.
+
+
+---
+
+## البحث داخل الكتب — Embeddings وRAG (تنفيذ أولي)
+
+### ما تمت إضافته
+
+- خدمة `backend/services/gemini-embeddings.js` لاستخدام نموذج `gemini-embedding-2` لإنشاء متجهات النص.
+- اعتماد 768 بُعدًا لتوافق Firestore Vector Search، بدل 3072 الافتراضية؛ الحد الأقصى لفهرس Firestore هو 2048 بُعدًا.
+- تنسيق المقاطع بصيغة Document Retrieval، والأسئلة بصيغة Question Answering وفق إرشادات Gemini Embeddings.
+- endpoint `POST /api/documents/:id/index` لفهرسة حتى 8 مقاطع في كل طلب (الواجهة ترسل 5 مقاطع في الطلب) حتى لا تتجاوز معالجة ملف طويل زمن الطلب الواحد.
+- تخزين المتجه مع كل مقطع، مع `embeddingModel` و`embeddingDimensions` و`embeddingVersion` لمنع خلط إصدارات النماذج.
+- الواجهة تبدأ فهرسة الملف تلقائيًا بعد استخراج النص وتعرض عدد المقاطع المتبقية.
+- endpoint `POST /api/documents/:id/ask` لتوليد متجه السؤال، واسترجاع أقرب المقاطع من Firestore، ثم إرسال السياق فقط إلى مدرس OpenRouter.
+- إجابات الكتاب تطلب الاستناد للمقاطع المسترجعة وذكر أرقام الصفحات، وتعيد مصادر الصفحات المستخدمة.
+
+### إعداد Gemini
+
+أضف إلى متغيرات بيئة الباك إند:
+
+```env
+GEMINI_API_KEY=your_server_side_key
+GEMINI_EMBEDDING_MODEL=gemini-embedding-2
+EMBEDDING_TIMEOUT_MS=30000
+```
+
+مفتاح Gemini يبقى على السيرفر فقط. نموذج `gemini-embedding-2` يعرض حاليًا طبقة مجانية للمدخلات النصية في جدول أسعار Gemini، لكن الحدود والتوفر قد تتغير؛ راجع الأسعار والحصص قبل الاستخدام الفعلي.
+
+### إنشاء Vector Index في Firestore
+
+بعد إنشاء Firestore، يلزم إنشاء فهرس متجهي لمجموعة المقاطع `chunks` بالحقل `embedding` وبأبعاد 768. باستخدام Google Cloud CLI:
+
+```bash
+gcloud firestore indexes composite create \
+  --collection-group=chunks \
+  --query-scope=COLLECTION \
+  --field-config field-path=embedding,vector-config='{"dimension":"768","flat":"{}"}' \
+  --database="(default)"
+```
+
+انتظر حتى يصبح الفهرس جاهزًا في Google Cloud Console. بدون الفهرس، سيستطيع النظام رفع النص وتخزينه، لكن البحث الدلالي لن يعمل بعد.
+
+### واجهات RAG الجديدة
+
+| Method | Endpoint | الوظيفة |
+|---|---|---|
+| POST | `/api/documents/:id/index` | إنشاء Embeddings لمقاطع الملف على دفعات |
+| POST | `/api/documents/:id/ask` | سؤال الملف واسترجاع مقاطع مناسبة مع صفحاتها |
+
+كل هذه المسارات تتطلب Firebase ID Token. طلب السؤال يحتاج أيضًا `OPENROUTER_API_KEY` ومفتاح `GEMINI_API_KEY`.
+
+### حدود التنفيذ الحالي
+
+- البحث الدلالي يعمل داخل ملف واحد في كل طلب، ويتحقق من ملكية الملف قبل البحث.
+- البحث المتجهي يحتاج إلى Vector Index يدوي في مشروع Firestore.
+- لم يتم بعد إضافة بحث كلمات مفتاحية/Hybrid Search أو إعادة ترتيب النتائج.
+- لم يتم بعد حفظ سجل محادثات «اسأل كتابك» أو إنشاء الخرائط الذهنية من محتوى الكتاب.
+- لم يتم اختبار استدعاءات Gemini وFirestore على مشروع Firebase حقيقي؛ يلزم ضبط مفاتيح المشروع وإنشاء الفهرس ثم اختبار ملف فعلي.
+- رفع الملفات مفهرس نصيًا فقط؛ لا يوجد OCR في هذه المرحلة.
+
+### مصادر تقنية تم التحقق منها
+
+- Gemini Embeddings: https://ai.google.dev/gemini-api/docs/embeddings
+- Gemini API Pricing: https://ai.google.dev/gemini-api/docs/pricing/
+- Firestore Vector Search: https://firebase.google.com/docs/firestore/vector-search
