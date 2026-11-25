@@ -584,3 +584,8 @@ gcloud firestore indexes composite create \
 - Gemini Embeddings: https://ai.google.dev/gemini-api/docs/embeddings
 - Gemini API Pricing: https://ai.google.dev/gemini-api/docs/pricing/
 - Firestore Vector Search: https://firebase.google.com/docs/firestore/vector-search
+
+
+### تنبيه خصوصية مهم
+
+في إعداد Gemini API المجاني الحالي، تنص صفحة الأسعار على أن المدخلات قد تُستخدم لتحسين منتجات Google؛ لذلك لا ترفع مستندات سرية أو بيانات شخصية/حساسة باستخدام مفتاح مجاني قبل مراجعة شروط المزود وسياسة البيانات. يتم إرسال نص المقاطع إلى Gemini لإنشاء Embeddings، ثم تُرسل المقاطع المسترجعة إلى نموذج الشرح عبر OpenRouter. راجع شروط وسياسات كل مزود، واختر إعدادًا تجاريًا مناسبًا للبيانات الحساسة عند الحاجة.
