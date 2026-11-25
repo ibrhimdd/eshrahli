@@ -4,6 +4,8 @@ const crypto = require("node:crypto");
 const { requireAuth } = require("../middleware/require-auth");
 const { getFirebaseAdmin } = require("../services/firebase-admin");
 const { extractPdf } = require("../services/pdf-extractor");
+const { embedText, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS, EMBEDDING_VERSION } = require("../services/gemini-embeddings");
+const { chatCompletion } = require("../services/ai-provider");
 
 const router = express.Router();
 const upload = multer({
@@ -111,6 +113,156 @@ router.get("/", requireAuth, async (req, res) => {
     res.json({ documents: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) });
   } catch (error) {
     res.status(error.status || 500).json({ error: "تعذر تحميل ملفاتك." });
+  }
+});
+
+router.post("/:id/index", requireAuth, async (req, res) => {
+  const { db, FieldValue } = getFirebaseAdmin();
+  const documentRef = db.collection("documents").doc(req.params.id);
+  try {
+    const document = await documentRef.get();
+    if (!document.exists || document.data().ownerUid !== req.user.uid) {
+      return res.status(404).json({ error: "الملف غير موجود." });
+    }
+    if (document.data().status !== "ready") {
+      return res.status(409).json({ error: "الملف لم ينتهِ من استخراج النص بعد." });
+    }
+
+    const chunksRef = documentRef.collection("chunks");
+    const snapshot = await chunksRef.orderBy("chunkIndex").get();
+    const pending = snapshot.docs.filter((doc) => doc.get("embeddingVersion") !== EMBEDDING_VERSION);
+    const limit = Math.min(8, Math.max(1, Number(req.body?.limit) || 5));
+    const currentBatch = pending.slice(0, limit);
+
+    const vectors = await Promise.all(currentBatch.map((doc) =>
+      embedText(doc.get("text"), "document", document.data().name)
+    ));
+
+    const batch = db.batch();
+    currentBatch.forEach((doc, index) => {
+      batch.update(doc.ref, {
+        embedding: FieldValue.vector(vectors[index]),
+        embeddingModel: EMBEDDING_MODEL,
+        embeddingDimensions: EMBEDDING_DIMENSIONS,
+        embeddingVersion: EMBEDDING_VERSION,
+        embeddedAt: FieldValue.serverTimestamp()
+      });
+    });
+    if (currentBatch.length) await batch.commit();
+
+    const remaining = Math.max(0, pending.length - currentBatch.length);
+    await documentRef.update({
+      embeddingStatus: remaining === 0 ? "ready" : "processing",
+      embeddingModel: EMBEDDING_MODEL,
+      embeddingDimensions: EMBEDDING_DIMENSIONS,
+      embeddedChunks: snapshot.size - remaining,
+      remainingChunks: remaining,
+      updatedAt: FieldValue.serverTimestamp()
+    });
+
+    return res.json({
+      indexed: currentBatch.length,
+      remaining,
+      totalChunks: snapshot.size,
+      embeddingModel: EMBEDDING_MODEL,
+      dimensions: EMBEDDING_DIMENSIONS,
+      complete: remaining === 0
+    });
+  } catch (error) {
+    console.error("Embedding indexing failed:", error.message);
+    try {
+      await documentRef.update({
+        embeddingStatus: "failed",
+        embeddingError: "تعذر إنشاء التضمينات. يمكنك إعادة المحاولة.",
+        updatedAt: FieldValue.serverTimestamp()
+      });
+    } catch (_ignored) {}
+    return res.status(error.status || 502).json({
+      error: error.status === 503 ? error.message : "تعذر تجهيز البحث الدلالي لهذا الملف.",
+      details: process.env.NODE_ENV === "production" ? undefined : error.message
+    });
+  }
+});
+
+router.post("/:id/ask", requireAuth, async (req, res) => {
+  const question = String(req.body?.question || "").trim();
+  if (!question) return res.status(400).json({ error: "اكتب سؤالك عن الملف." });
+  if (question.length > 2500) return res.status(413).json({ error: "السؤال طويل جدًا؛ الحد الأقصى 2500 حرف." });
+
+  try {
+    const { db } = getFirebaseAdmin();
+    const documentRef = db.collection("documents").doc(req.params.id);
+    const document = await documentRef.get();
+    if (!document.exists || document.data().ownerUid !== req.user.uid) {
+      return res.status(404).json({ error: "الملف غير موجود." });
+    }
+    if (document.data().embeddingStatus !== "ready" ||
+        document.data().embeddingModel !== EMBEDDING_MODEL ||
+        document.data().embeddingDimensions !== EMBEDDING_DIMENSIONS) {
+      return res.status(409).json({ error: "جهّز البحث الدلالي للملف أولًا من زر فهرسة الملف." });
+    }
+
+    const queryVector = await embedText(question, "query");
+    const nearest = await documentRef.collection("chunks").findNearest({
+      vectorField: "embedding",
+      queryVector,
+      limit: 6,
+      distanceMeasure: "COSINE",
+      distanceResultField: "vector_distance"
+    }).get();
+
+    const sources = nearest.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        chunkId: doc.id,
+        pageStart: data.pageStart,
+        pageEnd: data.pageEnd,
+        distance: data.vector_distance ?? null,
+        text: String(data.text || "").slice(0, 2600)
+      };
+    }).filter((source) => source.text);
+
+    if (!sources.length) {
+      return res.status(404).json({ error: "لم أجد مقاطع مفهرسة مناسبة في هذا الملف." });
+    }
+
+    const context = sources.map((source, index) =>
+      "[المصدر " + (index + 1) + " | صفحة " + source.pageStart + "]\n" + source.text
+    ).join("\n\n---\n\n");
+
+    const result = await chatCompletion({
+      model: req.body?.model,
+      temperature: 0.2,
+      maxTokens: 1300,
+      messages: [
+        {
+          role: "system",
+          content: "أنت مدرس يجيب اعتمادًا على نص الكتاب المرفق فقط. لا تضف حقائق من خارج المصادر. إذا لم تكفِ المصادر فقل إن الإجابة غير موجودة بوضوح في الجزء المتاح. اذكر أرقام الصفحات داخل الإجابة بصيغة [صفحة رقم]. أجب بالعربية الواضحة."
+        },
+        {
+          role: "user",
+          content: "اسم الملف: " + document.data().name + "\nسؤال الطالب: " + question + "\n\nمقاطع الكتاب المسترجعة:\n" + context
+        }
+      ]
+    });
+
+    return res.json({
+      answer: result.content,
+      model: result.model,
+      documentId: document.id,
+      sources: sources.map(({ chunkId, pageStart, pageEnd, distance }) => ({
+        chunkId, pageStart, pageEnd, distance
+      }))
+    });
+  } catch (error) {
+    console.error("Document question failed:", error.message);
+    const missingIndex = /index.*(needed|required|not exist)|requires an index/i.test(error.message || "");
+    return res.status(error.status || (missingIndex ? 503 : 502)).json({
+      error: missingIndex
+        ? "فهرس Firestore للمتجهات غير جاهز بعد. أنشئ فهرس chunks لحقل embedding بأبعاد 768."
+        : "تعذر البحث أو الإجابة عن السؤال حاليًا.",
+      details: process.env.NODE_ENV === "production" ? undefined : error.message
+    });
   }
 });
 
