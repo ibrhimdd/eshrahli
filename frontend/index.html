@@ -60,6 +60,8 @@ img{max-width:100%}
 @media (max-width:480px){ .badge{display:none} #modelSelect{max-width:145px;font-size:11px} }
 
 .board-wrap{position:relative;flex:1;min-height:0;background:var(--board)}
+.chat-reply{position:absolute;top:12px;right:12px;z-index:4;width:min(360px,calc(100% - 24px));max-height:42%;overflow:auto;padding:12px 14px;border:1px solid var(--grid);border-radius:14px;background:var(--panel);color:var(--ink);box-shadow:0 4px 18px var(--shadow);font-size:14px;line-height:1.8;white-space:pre-wrap}
+.chat-reply[hidden]{display:none}
 .board-scroll{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch}
 #board{display:block}
 .pen-cursor{font-size:30px;opacity:0;pointer-events:none;text-anchor:middle;dominant-baseline:central;transition:opacity .15s}
@@ -132,6 +134,7 @@ img{max-width:100%}
     <div class="board-scroll" id="boardScroll">
       <svg id="board" viewBox="0 0 1000 1000" width="1000" style="width:1000px;height:auto" role="img" aria-label="سبورة بيضاء تعرض خريطة ذهنية متحركة للموضوع المطلوب"></svg>
     </div>
+    <div class="chat-reply" id="chatReply" hidden aria-live="polite"></div>
 
     <div class="empty-state" id="emptyState">
       <p>اكتب أي موضوع بتذاكره تحت، وهتلاقي السبورة بترسملك خريطة ذهنية بالخط اليدوي خطوة بخطوة — زي فكرة Knowie بالظبط.</p>
@@ -330,6 +333,8 @@ img{max-width:100%}
   var fastForward = false;
   var drawing = false;
   var followupCount = 0;
+  var chatHistory = [];
+  var chatReply = document.getElementById("chatReply");
   var FOLLOWUP_SLOTS = [[340, 940], [500, 970], [660, 940]];
 
   function clearBoard(){
@@ -497,11 +502,38 @@ img{max-width:100%}
   function startTopic(data){
     emptyState.hidden = true;
     hint.hidden = true;
+    chatHistory = [];
+    chatReply.hidden = true;
     animateBoard(data).then(function(){
       hasDrawnOnce = true;
       input.placeholder = "اطرح سؤالاً متابعًا عن الخريطة...";
       sendBtn.textContent = "اسأل";
     });
+  }
+
+  async function askTutor(message){
+    input.disabled = true; sendBtn.disabled = true;
+    var previousLabel = sendBtn.textContent;
+    sendBtn.textContent = "بيفكر...";
+    try {
+      var response = await fetch(API_BASE + "/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: message, history: chatHistory, model: selectedModel })
+      });
+      var data = await response.json();
+      if (!response.ok) throw new Error(data.error || "تعذر الحصول على إجابة.");
+      chatHistory.push({ role: "user", content: message });
+      chatHistory.push({ role: "assistant", content: data.reply });
+      chatReply.textContent = data.reply;
+      chatReply.hidden = false;
+    } catch (error) {
+      alert(error.message || "تعذر الاتصال بالمدرس الذكي.");
+    } finally {
+      input.disabled = false; sendBtn.disabled = false;
+      sendBtn.textContent = previousLabel;
+      input.focus();
+    }
   }
 
   async function startWithText(text){
@@ -542,7 +574,7 @@ img{max-width:100%}
         input.value = "";
         return;
       }
-      addFollowup(val);
+      askTutor(val);
     }
     input.value = "";
   });
@@ -554,6 +586,8 @@ img{max-width:100%}
     drawing = false;
     hasDrawnOnce = false;
     followupCount = 0;
+    chatHistory = [];
+    chatReply.hidden = true;
     clearBoard();
     emptyState.hidden = false;
     hint.hidden = false;
