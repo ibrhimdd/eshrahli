@@ -50,13 +50,14 @@ img{max-width:100%}
   border-bottom:1px solid var(--grid); flex:0 0 auto;
 }
 .brand{display:flex;align-items:center;gap:8px;min-width:0}
+#modelSelect{max-width:210px;padding:7px 10px;border:1px solid var(--grid);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px}
 .brand-icon{font-size:20px;line-height:1}
 .brand-name{font-family:var(--font-ink);font-weight:700;font-size:22px;white-space:nowrap}
 .badge{
   font-size:11px;color:var(--ink-soft);background:transparent;border:1px solid var(--grid);
   padding:4px 10px;border-radius:999px;white-space:nowrap;flex:0 0 auto;
 }
-@media (max-width:480px){ .badge{display:none} }
+@media (max-width:480px){ .badge{display:none} #modelSelect{max-width:145px;font-size:11px} }
 
 .board-wrap{position:relative;flex:1;min-height:0;background:var(--board)}
 .board-scroll{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -124,7 +125,7 @@ img{max-width:100%}
 <div class="app" dir="rtl">
   <header class="topbar">
     <div class="brand"><span class="brand-icon">✏️</span><span class="brand-name">اشرحلي</span></div>
-    <span class="badge">نموذج أولي · مستوحى من فكرة شرح Knowunity</span>
+    <span class="badge">مدرسك الذكي · سبورة تفاعلية</span><select id="modelSelect" aria-label="اختيار نموذج الذكاء الاصطناعي"><option value="openrouter/free">اختيار تلقائي (مجاني)</option></select>
   </header>
 
   <div class="board-wrap" id="boardWrap">
@@ -165,7 +166,24 @@ img{max-width:100%}
 
   // Backend base URL. Override by setting window.ESHRAHLI_API_BASE before this script runs,
   // or just edit the default below once you deploy the backend somewhere other than localhost.
-  var API_BASE = window.ESHRAHLI_API_BASE || "http://localhost:4000";
+  var API_BASE = (window.ESHRAHLI_API_BASE || "http://localhost:4000").replace(/\/$/, "");
+  var selectedModel = "openrouter/free";
+  var modelSelect = document.getElementById("modelSelect");
+  async function loadModels(){
+    if (!modelSelect) return;
+    try {
+      var response = await fetch(API_BASE + "/api/models");
+      if (!response.ok) throw new Error("models unavailable");
+      var payload = await response.json();
+      (payload.models || []).forEach(function(model){
+        var option = document.createElement("option");
+        option.value = model.id; option.textContent = model.name + " · مجاني";
+        modelSelect.appendChild(option);
+      });
+    } catch (error) { console.warn("تعذر تحميل النماذج؛ سيظل الاختيار التلقائي متاحًا.", error); }
+  }
+  if (modelSelect) modelSelect.addEventListener("change", function(){ selectedModel = modelSelect.value; });
+  loadModels();
 
   var TOPICS = {
     mirrors: {
@@ -252,15 +270,15 @@ img{max-width:100%}
       var res = await fetch(API_BASE + "/api/mindmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: text })
+        body: JSON.stringify({ topic: text, model: selectedModel })
       });
       if (!res.ok) throw new Error("bad response " + res.status);
       var data = await res.json();
       if (!isValidMindMap(data)) throw new Error("bad shape from backend");
       return data;
     } catch (err){
-      console.warn("اشرحلي: مفيش رد من الباك إند، هنستخدم خريطة عامة بديلة.", err);
-      return buildGeneric(text || "موضوعك");
+      console.error("اشرحلي: تعذر إنشاء الخريطة.", err);
+      throw new Error("تعذر الاتصال بالمدرس الذكي. تأكد من تشغيل الـ API وإعداد مفتاح OpenRouter، ثم حاول مرة أخرى.");
     }
   }
 
@@ -490,10 +508,15 @@ img{max-width:100%}
     input.disabled = true; sendBtn.disabled = true;
     var prevLabel = sendBtn.textContent;
     sendBtn.textContent = "بيفكر...";
-    var data = await resolveTopic(text);
-    input.disabled = false; sendBtn.disabled = false;
-    sendBtn.textContent = prevLabel;
-    startTopic(data);
+    try {
+      var data = await resolveTopic(text);
+      startTopic(data);
+    } catch (err) {
+      alert(err.message || "حدث خطأ أثناء الشرح.");
+    } finally {
+      input.disabled = false; sendBtn.disabled = false;
+      sendBtn.textContent = prevLabel;
+    }
   }
 
   document.querySelectorAll(".chip").forEach(function(chip){
