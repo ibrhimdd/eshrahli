@@ -1,16 +1,15 @@
 {
   "name": "eshrahli-backend",
-  "version": "1.0.0",
-  "description": "باك إند مشروع اشرحلي - بيولّد خريطة ذهنية (JSON) لأي موضوع تبعته الواجهة الأمامية",
+  "version": "1.1.0",
+  "description": "Eshrahli AI tutor API",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --check routes/mindmap.js && node --check routes/chat.js && node --check routes/models.js && node --check services/ai-provider.js"
   },
-  "engines": {
-    "node": ">=18"
-  },
+  "engines": { "node": ">=18" },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
