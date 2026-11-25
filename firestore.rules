@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // All reads and writes go through the authenticated backend.
+    // Firebase Admin SDK requests are authorized by IAM and bypass these client rules.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
