@@ -66,6 +66,8 @@ img{max-width:100%}
 .account-muted{color:var(--ink-soft);font-size:13px}
 .document-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--grid)}
 .document-item strong,.document-item small{display:block;overflow-wrap:anywhere}
+#askDocumentAnswer{margin-top:10px;padding:12px;border-radius:12px;background:var(--bg);font-size:13px;line-height:1.8;white-space:pre-wrap;max-height:260px;overflow:auto}
+#askDocumentForm{border-top:1px solid var(--grid);margin-top:16px;padding-top:12px}
 .document-item small{color:var(--ink-soft);font-size:11px;margin-top:3px}
 #modelSelect{max-width:210px;padding:7px 10px;border:1px solid var(--grid);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px}
 .brand-icon{font-size:20px;line-height:1}
@@ -213,6 +215,17 @@ img{max-width:100%}
     <p class="account-muted">الحد الحالي 4 ميجابايت و100 صفحة. الملفات المصوّرة التي لا تحتوي على نص قابل للاستخراج غير مدعومة بعد.</p>
     <button type="submit">رفع وتحليل PDF</button>
   </form>
+  <form id="askDocumentForm" hidden>
+    <h3>اسأل كتابك</h3>
+    <label>اختر الملف
+      <select id="askDocumentSelect" required style="width:100%;padding:9px;border:1px solid var(--grid);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit"></select>
+    </label>
+    <label>سؤالك عن محتوى الكتاب
+      <input id="askQuestion" type="text" maxlength="2500" placeholder="مثال: اشرح لي الفكرة الرئيسية في الفصل الثاني" required>
+    </label>
+    <button type="submit">اسأل الكتاب</button>
+    <div id="askDocumentAnswer" aria-live="polite"></div>
+  </form>
   <p id="accountStatus" class="account-status" role="status" aria-live="polite">يتم تجهيز الحساب...</p>
   <h3>ملفاتي</h3>
   <div id="documentsList" hidden></div>
@@ -242,7 +255,11 @@ img{max-width:100%}
       });
     } catch (error) { console.warn("تعذر تحميل النماذج؛ سيظل الاختيار التلقائي متاحًا.", error); }
   }
-  if (modelSelect) modelSelect.addEventListener("change", function(){ selectedModel = modelSelect.value; });
+  window.ESHRAHLI_SELECTED_MODEL = selectedModel;
+  if (modelSelect) modelSelect.addEventListener("change", function(){
+    selectedModel = modelSelect.value;
+    window.ESHRAHLI_SELECTED_MODEL = selectedModel;
+  });
   loadModels();
 
   var TOPICS = {
