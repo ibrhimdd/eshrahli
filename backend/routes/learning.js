@@ -240,3 +240,4 @@ router.post("/quizzes/:quizId/submit", async (req, res) => {
 });
 
 module.exports = router;
+module.exports.testHelpers = { parseJson, validMap, validQuiz };
