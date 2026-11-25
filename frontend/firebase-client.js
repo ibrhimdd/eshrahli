@@ -23,6 +23,9 @@ import {
   const askDocumentSelect = document.getElementById("askDocumentSelect");
   const askQuestionInput = document.getElementById("askQuestion");
   const askAnswer = document.getElementById("askDocumentAnswer");
+  const generateMapButton = document.getElementById("generateDocumentMap");
+  const generateQuizButton = document.getElementById("generateDocumentQuiz");
+  const generatedQuiz = document.getElementById("generatedQuiz");
   const accountButton = document.getElementById("accountButton");
   const dialog = document.getElementById("accountDialog");
   const closeButton = document.getElementById("closeAccountDialog");
@@ -200,6 +203,102 @@ import {
       button.textContent = "اسأل الكتاب";
     }
   }
+  function renderQuiz(quiz) {
+    generatedQuiz.replaceChildren();
+    const heading = document.createElement("h3");
+    heading.textContent = quiz.title || "اختبار من الكتاب";
+    const form = document.createElement("form");
+    form.id = "generatedQuizForm";
+    (quiz.questions || []).forEach((question, index) => {
+      const fieldset = document.createElement("fieldset");
+      const legend = document.createElement("legend");
+      legend.textContent = (index + 1) + ". " + question.question;
+      fieldset.appendChild(legend);
+      question.options.forEach((option, optionIndex) => {
+        const label = document.createElement("label");
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "question-" + index;
+        radio.value = String(optionIndex);
+        radio.required = true;
+        label.append(radio, document.createTextNode(" " + option));
+        fieldset.appendChild(label);
+      });
+      form.appendChild(fieldset);
+    });
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.textContent = "صحّح إجاباتي";
+    form.appendChild(submit);
+    const resultBox = document.createElement("div");
+    resultBox.setAttribute("aria-live", "polite");
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const answers = (quiz.questions || []).map((_question, index) => {
+        const selected = form.querySelector('input[name="question-' + index + '"]:checked');
+        return selected ? Number(selected.value) : -1;
+      });
+      submit.disabled = true;
+      try {
+        const response = await apiRequest("/api/learning/quizzes/" + encodeURIComponent(quiz.id) + "/submit", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "تعذر تصحيح الاختبار.");
+        resultBox.replaceChildren();
+        const score = document.createElement("h3");
+        score.textContent = "نتيجتك: " + data.score + " من " + data.total + " (" + data.percentage + "%)";
+        resultBox.appendChild(score);
+        data.results.forEach((item, index) => {
+          const line = document.createElement("p");
+          line.textContent = (index + 1) + ". " + (item.correct ? "إجابة صحيحة" : "إجابة غير صحيحة") +
+            " — الإجابة الصحيحة: " + (quiz.questions[index].options[item.correctIndex] || "") +
+            (item.explanation ? " — " + item.explanation : "");
+          resultBox.appendChild(line);
+        });
+        form.querySelectorAll("input").forEach((input) => { input.disabled = true; });
+      } catch (error) {
+        showStatus(error.message, true);
+        submit.disabled = false;
+      }
+    });
+    generatedQuiz.append(heading, form, resultBox);
+  }
+
+  async function createBookLearning(kind) {
+    const documentId = askDocumentSelect.value;
+    if (!documentId) return showStatus("ارفع كتابًا واختره أولًا.", true);
+    const button = kind === "mindmap" ? generateMapButton : generateQuizButton;
+    const oldText = button.textContent;
+    button.disabled = true;
+    button.textContent = kind === "mindmap" ? "جاري إنشاء الخريطة..." : "جاري إعداد الاختبار...";
+    try {
+      const response = await apiRequest("/api/learning/documents/" + encodeURIComponent(documentId) + "/" + (kind === "mindmap" ? "mindmap" : "quiz"), {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: askQuestionInput.value.trim(),
+          count: 5,
+          model: window.ESHRAHLI_SELECTED_MODEL || "openrouter/free"
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "تعذر إنشاء المحتوى التعليمي.");
+      if (kind === "mindmap") {
+        window.dispatchEvent(new CustomEvent("eshrahli:render-mindmap", { detail: data.mindmap }));
+        showStatus("تم إنشاء خريطة ذهنية من مقاطع الكتاب.");
+      } else {
+        renderQuiz(data.quiz);
+        showStatus("تم إنشاء اختبار من محتوى الكتاب.");
+      }
+    } catch (error) {
+      showStatus(error.message, true);
+    } finally {
+      button.disabled = false;
+      button.textContent = oldText;
+    }
+  }
+
   async function uploadPdf(event) {
     event.preventDefault();
     if (!fileInput.files?.[0]) return showStatus("اختر ملف PDF أولًا.", true);
@@ -252,6 +351,8 @@ import {
   });
   uploadForm.addEventListener("submit", uploadPdf);
   askForm.addEventListener("submit", askDocument);
+  generateMapButton.addEventListener("click", () => createBookLearning("mindmap"));
+  generateQuizButton.addEventListener("click", () => createBookLearning("quiz"));
 
   if (!config || !config.apiKey || config.apiKey.startsWith("YOUR_")) {
     showStatus("لتمكين الحسابات ورفع PDF: انسخ firebase-config.example.js إلى firebase-config.js وأضف إعدادات تطبيق Firebase Web.", true);
