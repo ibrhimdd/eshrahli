@@ -3,26 +3,39 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mindmapRouter = require("./routes/mindmap");
+const modelsRouter = require("./routes/models");
+const chatRouter = require("./routes/chat");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const allowedOrigins = (process.env.CORS_ORIGINS || "").split(",").map((v) => v.trim()).filter(Boolean);
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Origin not allowed by CORS"));
+  }
+}));
+app.use(express.json({ limit: "1mb" }));
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", service: "eshrahli-backend" });
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", service: "eshrahli-backend", aiProvider: "openrouter" });
 });
 
+app.use("/api/models", modelsRouter);
+app.use("/api/chat", chatRouter);
 app.use("/api/mindmap", mindmapRouter);
 
-app.use((req, res) => {
-  res.status(404).json({ error: "المسار ده مش موجود" });
+app.use((req, res) => res.status(404).json({ error: "المسار ده مش موجود" }));
+app.use((error, _req, res, _next) => {
+  res.status(400).json({ error: "تعذر معالجة الطلب.", details: process.env.NODE_ENV === "production" ? undefined : error.message });
 });
 
-app.listen(PORT, () => {
-  console.log(`🖊️  سيرفر اشرحلي شغال على http://localhost:${PORT}`);
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log("ℹ️  مفيش ANTHROPIC_API_KEY متظبط — هيتم الرجوع لخريطة عامة بديلة لأي موضوع مش في المكتبة الجاهزة.");
-  }
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log("Eshrahli API listening on port " + PORT);
+    if (!process.env.OPENROUTER_API_KEY) console.warn("OPENROUTER_API_KEY is not configured.");
+  });
+}
+
+module.exports = app;
