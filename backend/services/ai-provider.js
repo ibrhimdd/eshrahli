@@ -33,7 +33,8 @@ async function request(path, options = {}) {
 function freeTextModel(model) {
   const input = model?.architecture?.input_modalities || [];
   const output = model?.architecture?.output_modalities || [];
-  return Number(model?.pricing?.prompt) === 0 &&
+  return String(model?.id || "").endsWith(":free") &&
+    Number(model?.pricing?.prompt) === 0 &&
     Number(model?.pricing?.completion) === 0 &&
     input.includes("text") && output.includes("text");
 }
@@ -77,4 +78,4 @@ async function chatCompletion({ messages, model, temperature = 0.5, maxTokens = 
   return { content: content.trim(), model: result.model || modelId, usage: result.usage || null };
 }
 
-module.exports = { listModels, chatCompletion };
+module.exports = { listModels, chatCompletion, freeTextModel };
