@@ -407,3 +407,106 @@ https://github.com/ibrhimdd/Ibrahim-Alkhooly
 - التأكد من إرجاع حالة واضحة عند غياب مفتاح OpenRouter.
 
 لتشغيلها: `npm test` من داخل مجلد `backend`. هذه اختبارات API أساسية، ولا تغني عن اختبار تكامل فعلي بمفتاح OpenRouter في بيئة آمنة.
+
+
+---
+
+## المرحلة التالية المنفذة — Firebase Auth وPDF النصّي
+
+### ما تم إضافته فعليًا
+
+- Firebase Admin SDK في `backend/services/firebase-admin.js` لتهيئة Firestore والتحقق من ID Tokens.
+- Middleware في `backend/middleware/require-auth.js` يرفض أي طلب للمستندات بدون Bearer ID Token صالح.
+- واجهة Firebase Authentication في `frontend/firebase-client.js` لتسجيل الحساب بالبريد وكلمة المرور وتسجيل الدخول والخروج.
+- إعداد واجهة Firebase في `frontend/firebase-config.example.js`، والملف الفعلي `frontend/firebase-config.js` مستثنى من Git.
+- رفع PDF باستخدام Multer بحد أقصى افتراضي 15MB، مع التحقق من MIME والامتداد وبصمة الملف وتوقيع PDF.
+- استخراج النص صفحة بصفحة باستخدام PDF.js، مع حد أقصى 100 صفحة افتراضيًا.
+- رفض الملفات التي لا تحتوي على نص قابل للاستخراج برسالة توضح أنها قد تكون PDF مصوّرة.
+- تنظيف النص وتقسيمه إلى مقاطع مع حفظ أرقام الصفحات.
+- حفظ بيانات المستند في `documents` ومقاطع النص في `documents/{documentId}/chunks`.
+- منع تكرار معالجة نفس الملف لنفس المستخدم عبر SHA-256.
+- عرض قائمة الملفات للمستخدم وحذف ملفه ومقاطع النص التابعة له.
+- إضافة Firestore rules افتراضية تمنع الوصول المباشر من المتصفح؛ الوصول الحالي يمر عبر Backend موثوق يتحقق من ملكية الملف.
+- إضافة فهرس لقائمة مستندات المستخدم، واختبارات أساسية للمصادقة والتحقق من PDF.
+
+### ملفات المرحلة
+
+**ملفات جديدة**
+- `backend/services/firebase-admin.js`
+- `backend/middleware/require-auth.js`
+- `backend/services/pdf-extractor.js`
+- `backend/routes/documents.js`
+- `backend/tests/documents.test.js`
+- `backend/tests/auth.test.js`
+- `frontend/firebase-client.js`
+- `frontend/firebase-config.example.js`
+- `firestore.rules`
+- `firestore.indexes.json`
+- `firebase.json`
+
+**ملفات محدثة**
+- `backend/server.js`
+- `backend/package.json`
+- `backend/.env.example`
+- `frontend/index.html`
+- `.gitignore`
+
+### إعداد Firebase المطلوب قبل التشغيل الفعلي
+
+1. أنشئ مشروع Firebase أو استخدم مشروعك الحالي.
+2. من Authentication > Sign-in method فعّل Email/Password.
+3. من Project settings > General > Your apps أنشئ Web App وانسخ إعداداته.
+4. انسخ `frontend/firebase-config.example.js` إلى `frontend/firebase-config.js`، وضع إعدادات Web App الفعلية. هذا الملف مستثنى من Git.
+5. من Project settings > Service accounts أنشئ بيانات اعتماد Service Account للاستخدام على السيرفر فقط. لا تضع هذا الملف داخل المستودع.
+6. في بيئة السيرفر اضبط `FIREBASE_SERVICE_ACCOUNT_JSON` على محتوى JSON كاملًا، واضبط `FIREBASE_PROJECT_ID`.
+7. أنشئ Cloud Firestore Database في نفس المشروع.
+8. من مجلد المشروع نفّذ `firebase deploy --only firestore:rules,firestore:indexes` بعد تثبيت Firebase CLI وتسجيل الدخول.
+
+### إعداد التشغيل
+
+داخل `backend`:
+```bash
+npm install
+cp .env.example .env
+npm run check
+npm test
+npm start
+```
+
+في Windows PowerShell يمكن نسخ ملف البيئة هكذا:
+```powershell
+Copy-Item .env.example .env
+```
+
+المشروع يتطلب Node.js 22 أو أحدث في هذه المرحلة. في الإنتاج ضع متغيرات البيئة في إعدادات الاستضافة ولا ترفع `.env` أو Service Account إلى GitHub.
+
+### واجهات المستندات
+
+| Method | Endpoint | الوظيفة |
+|---|---|---|
+| POST | `/api/documents` | رفع PDF نصّي عبر multipart field اسمه `file` |
+| GET | `/api/documents` | عرض ملفات المستخدم الحالي |
+| GET | `/api/documents/:id/chunks` | قراءة مقاطع الملف المملوك للمستخدم |
+| DELETE | `/api/documents/:id` | حذف الملف ومقاطع النص التابعة له |
+
+كل هذه المسارات تتطلب:
+`Authorization: Bearer <Firebase ID Token>`
+
+### حدود هذه المرحلة
+
+- لا يتم تخزين ملف PDF الأصلي؛ يتم حفظ بياناته والنصوص المستخرجة فقط.
+- لا يوجد OCR للملفات المصوّرة حتى الآن.
+- لم يتم إنشاء Embeddings أو Vector Search بعد؛ هذه هي المرحلة التالية.
+- واجهة رفع PDF متاحة بعد إعداد Firebase Web App وFirebase Admin. لن تعمل الحسابات بمجرد نسخ الكود دون إعداد مشروع Firebase ومفاتيحه.
+- اختبارات API أضيفت إلى المستودع، لكن يجب تشغيل `npm test` محليًا بعد تثبيت التبعيات؛ لم يتم تنفيذ اختبار تكامل على مشروع Firebase فعلي لعدم توفر بيانات مشروعك واعتماداته في بيئة التطوير.
+
+### ملاحظة أمنية
+
+يستخدم الباك إند Firebase Admin SDK، وهذه المكتبات ذات صلاحيات إدارية وتتجاوز Firestore Security Rules؛ لذلك كل endpoint للمستندات يتحقق من Firebase ID Token ومن `ownerUid` قبل القراءة أو الحذف. قواعد Firestore الحالية تمنع وصول المتصفح المباشر افتراضيًا. راجع وثائق Firebase الرسمية قبل تغيير هذه القواعد.
+
+### المرحلة التالية
+
+- اختيار نموذج Embedding متاح ومناسب للعربية بعد التحقق من السعر والقدرات.
+- إنشاء Embedding لكل مقطع مرة واحدة.
+- حفظ إصدار نموذج Embedding مع المقاطع.
+- بناء استرجاع دلالي وهجين ثم `POST /api/documents/:id/ask` لإجابة الأسئلة من محتوى الكتاب مع مراجع الصفحات.
