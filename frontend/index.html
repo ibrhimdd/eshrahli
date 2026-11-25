@@ -50,6 +50,23 @@ img{max-width:100%}
   border-bottom:1px solid var(--grid); flex:0 0 auto;
 }
 .brand{display:flex;align-items:center;gap:8px;min-width:0}
+.account-button{border:1px solid var(--grid);background:var(--panel);color:var(--ink);border-radius:999px;padding:7px 12px;font:inherit;font-size:12px;cursor:pointer}
+.account-dialog{width:min(560px,calc(100% - 24px));max-height:85vh;overflow:auto;border:1px solid var(--grid);border-radius:18px;background:var(--panel);color:var(--ink);padding:20px;box-shadow:0 16px 60px rgba(0,0,0,.25)}
+.account-dialog::backdrop{background:rgba(10,15,20,.55)}
+.account-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.account-head h2{margin:0;font-family:var(--font-ink);font-size:22px}
+.account-dialog input{width:100%;padding:10px 12px;border:1px solid var(--grid);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;margin-top:5px}
+.account-dialog label{display:block;margin:10px 0;font-size:13px}
+.account-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.account-actions button,.account-dialog button{border:1px solid var(--grid);border-radius:10px;padding:8px 12px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
+.account-actions button.active,.account-dialog button[type=submit]{background:var(--line);color:#fff;border-color:var(--line)}
+.account-dialog button:disabled{opacity:.55}
+.account-status{padding:10px;border-radius:10px;background:var(--bg);font-size:13px;line-height:1.6}
+.account-status[data-state=error]{color:var(--danger)}
+.account-muted{color:var(--ink-soft);font-size:13px}
+.document-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--grid)}
+.document-item strong,.document-item small{display:block;overflow-wrap:anywhere}
+.document-item small{color:var(--ink-soft);font-size:11px;margin-top:3px}
 #modelSelect{max-width:210px;padding:7px 10px;border:1px solid var(--grid);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px}
 .brand-icon{font-size:20px;line-height:1}
 .brand-name{font-family:var(--font-ink);font-weight:700;font-size:22px;white-space:nowrap}
@@ -127,7 +144,10 @@ img{max-width:100%}
 <div class="app" dir="rtl">
   <header class="topbar">
     <div class="brand"><span class="brand-icon">✏️</span><span class="brand-name">اشرحلي</span></div>
-    <span class="badge">مدرسك الذكي · سبورة تفاعلية</span><select id="modelSelect" aria-label="اختيار نموذج الذكاء الاصطناعي"><option value="openrouter/free">اختيار تلقائي (مجاني)</option></select>
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <button class="account-button" id="accountButton" type="button">حسابي / ملفاتي</button>
+      <select id="modelSelect" aria-label="اختيار نموذج الذكاء الاصطناعي"><option value="openrouter/free">اختيار تلقائي (مجاني)</option></select>
+    </div>
   </header>
 
   <div class="board-wrap" id="boardWrap">
@@ -163,6 +183,43 @@ img{max-width:100%}
   </form>
 </div>
 
+<dialog class="account-dialog" id="accountDialog" dir="rtl">
+  <div class="account-head">
+    <h2>حسابك وملفاتك</h2>
+    <button id="closeAccountDialog" type="button" aria-label="إغلاق">✕</button>
+  </div>
+  <p class="account-muted">سجّل الدخول لحفظ ملفات PDF النصية في حسابك والرجوع إليها لاحقًا.</p>
+  <div class="account-actions">
+    <button id="loginButton" class="active" type="button">تسجيل الدخول</button>
+    <button id="signupButton" type="button">إنشاء حساب</button>
+    <button id="logoutButton" type="button" hidden>تسجيل الخروج</button>
+  </div>
+  <form id="authForm">
+    <label id="accountNameField" hidden>الاسم
+      <input id="accountName" type="text" maxlength="80" autocomplete="name">
+    </label>
+    <label>البريد الإلكتروني
+      <input id="accountEmail" type="email" required autocomplete="email">
+    </label>
+    <label>كلمة المرور
+      <input id="accountPassword" type="password" required minlength="6" autocomplete="current-password">
+    </label>
+    <button type="submit">متابعة</button>
+  </form>
+  <form id="pdfUploadForm" hidden style="margin-top:18px">
+    <label>ارفع كتابًا أو مذكرة PDF نصية
+      <input id="pdfFile" type="file" accept="application/pdf,.pdf" required>
+    </label>
+    <p class="account-muted">الحد الحالي 15 ميجابايت و100 صفحة. الملفات المصوّرة التي لا تحتوي على نص قابل للاستخراج غير مدعومة بعد.</p>
+    <button type="submit">رفع وتحليل PDF</button>
+  </form>
+  <p id="accountStatus" class="account-status" role="status" aria-live="polite">يتم تجهيز الحساب...</p>
+  <h3>ملفاتي</h3>
+  <div id="documentsList" hidden></div>
+</dialog>
+
+<script src="./firebase-config.js"></script>
+<script type="module" src="./firebase-client.js"></script>
 <script>
 (function(){
   "use strict";
