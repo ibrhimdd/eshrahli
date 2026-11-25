@@ -207,7 +207,7 @@ import {
     generatedQuiz.replaceChildren();
     const heading = document.createElement("h3");
     heading.textContent = quiz.title || "اختبار من الكتاب";
-    const form = document.createElement("form");
+    const form = document.createElement("div");
     form.id = "generatedQuizForm";
     (quiz.questions || []).forEach((question, index) => {
       const fieldset = document.createElement("fieldset");
@@ -227,13 +227,12 @@ import {
       form.appendChild(fieldset);
     });
     const submit = document.createElement("button");
-    submit.type = "submit";
+    submit.type = "button";
     submit.textContent = "صحّح إجاباتي";
     form.appendChild(submit);
     const resultBox = document.createElement("div");
     resultBox.setAttribute("aria-live", "polite");
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
+    submit.addEventListener("click", async () => {
       const answers = (quiz.questions || []).map((_question, index) => {
         const selected = form.querySelector('input[name="question-' + index + '"]:checked');
         return selected ? Number(selected.value) : -1;
