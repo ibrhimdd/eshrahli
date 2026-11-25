@@ -13,7 +13,8 @@ const allowedOrigins = (process.env.CORS_ORIGINS || "").split(",").map((v) => v.
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    if (process.env.NODE_ENV !== "production" && allowedOrigins.length === 0) return callback(null, true);
     return callback(new Error("Origin not allowed by CORS"));
   }
 }));
