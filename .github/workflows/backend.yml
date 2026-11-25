@@ -5,10 +5,17 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "firebase.json"
       - ".github/workflows/backend.yml"
   pull_request:
     paths:
       - "backend/**"
+      - "frontend/**"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "firebase.json"
       - ".github/workflows/backend.yml"
 
 jobs:
