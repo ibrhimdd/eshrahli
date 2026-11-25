@@ -7,6 +7,7 @@ const modelsRouter = require("./routes/models");
 const chatRouter = require("./routes/chat");
 const documentsRouter = require("./routes/documents");
 const sessionsRouter = require("./routes/sessions");
+const learningRouter = require("./routes/learning");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -29,6 +30,7 @@ app.use("/api/models", modelsRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/documents", documentsRouter);
 app.use("/api/sessions", sessionsRouter);
+app.use("/api/learning", learningRouter);
 app.use("/api/mindmap", mindmapRouter);
 
 app.use((req, res) => res.status(404).json({ error: "المسار ده مش موجود" }));
