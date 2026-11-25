@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && node --check routes/mindmap.js && node --check routes/chat.js && node --check routes/models.js && node --check services/ai-provider.js && node --check tests/api.test.js && node --check middleware/require-auth.js && node --check services/firebase-admin.js && node --check services/pdf-extractor.js && node --check routes/documents.js && node --check routes/sessions.js && node --check tests/documents.test.js && node --check tests/auth.test.js && node --check services/gemini-embeddings.js",
+    "check": "node --check server.js && node --check routes/mindmap.js && node --check routes/chat.js && node --check routes/models.js && node --check services/ai-provider.js && node --check tests/api.test.js && node --check tests/ai-provider.test.js && node --check middleware/require-auth.js && node --check services/firebase-admin.js && node --check services/pdf-extractor.js && node --check routes/documents.js && node --check routes/sessions.js && node --check tests/documents.test.js && node --check tests/auth.test.js && node --check services/gemini-embeddings.js",
     "test": "node --test"
   },
   "engines": {
