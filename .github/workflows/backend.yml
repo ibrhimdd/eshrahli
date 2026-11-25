@@ -26,6 +26,11 @@ jobs:
       - name: Check syntax
         working-directory: backend
         run: npm run check
+
+      - name: Check frontend JavaScript syntax
+        run: |
+          node --check --input-type=module < frontend/firebase-client.js
+          node -e 'const fs=require("node:fs"); const vm=require("node:vm"); const html=fs.readFileSync("frontend/index.html","utf8"); for (const match of html.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)) new vm.Script(match[1]);'
       - name: Run API tests
         working-directory: backend
         run: npm test
