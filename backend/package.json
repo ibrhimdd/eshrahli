@@ -7,15 +7,18 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && node --check routes/mindmap.js && node --check routes/chat.js && node --check routes/models.js && node --check services/ai-provider.js && node --check tests/api.test.js",
+    "check": "node --check server.js && node --check routes/mindmap.js && node --check routes/chat.js && node --check routes/models.js && node --check services/ai-provider.js && node --check tests/api.test.js && node --check middleware/require-auth.js && node --check services/firebase-admin.js && node --check services/pdf-extractor.js && node --check routes/documents.js",
     "test": "node --test"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "firebase-admin": "^13.6.0",
+    "multer": "^2.0.2",
+    "pdfjs-dist": "^5.4.394"
   }
 }
