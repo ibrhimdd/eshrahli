@@ -703,6 +703,14 @@ img{max-width:100%}
 
   clearBoard();
 
+  window.addEventListener("eshrahli:auth-state", function(event){
+    if (!event.detail || !event.detail.signedIn) {
+      activeSessionId = null;
+      chatHistory = [];
+      chatReply.hidden = true;
+    }
+  });
+
   window.addEventListener("eshrahli:load-session", function(event){
     var session = event.detail || {};
     activeSessionId = session.id || null;
