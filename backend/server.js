@@ -30,7 +30,14 @@ app.use("/api/mindmap", mindmapRouter);
 
 app.use((req, res) => res.status(404).json({ error: "المسار ده مش موجود" }));
 app.use((error, _req, res, _next) => {
-  res.status(400).json({ error: "تعذر معالجة الطلب.", details: process.env.NODE_ENV === "production" ? undefined : error.message });
+  const status = error.status || (error.code === "LIMIT_FILE_SIZE" ? 413 : 400);
+  const message = error.code === "LIMIT_FILE_SIZE"
+    ? "حجم ملف PDF أكبر من الحد المسموح (4 ميجابايت افتراضيًا)."
+    : (error.status && error.message ? error.message : "تعذر معالجة الطلب.");
+  res.status(status).json({
+    error: message,
+    details: process.env.NODE_ENV === "production" ? undefined : error.message
+  });
 });
 
 if (require.main === module) {
