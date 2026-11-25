@@ -7,7 +7,7 @@ async function requireAuth(req, res, next) {
 
   try {
     const { auth } = getFirebaseAdmin();
-    const decoded = await auth.verifyIdToken(match[1]);
+    const decoded = await auth.verifyIdToken(match[1], true);
     req.user = { uid: decoded.uid, email: decoded.email || null };
     return next();
   } catch (error) {
