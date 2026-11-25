@@ -7,9 +7,12 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && node --check routes/mindmap.js && node --check routes/chat.js && node --check routes/models.js && node --check services/ai-provider.js"
+    "check": "node --check server.js && node --check routes/mindmap.js && node --check routes/chat.js && node --check routes/models.js && node --check services/ai-provider.js && node --check tests/api.test.js",
+    "test": "node --test"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
