@@ -331,3 +331,67 @@ https://github.com/ibrhimdd/Ibrahim-Alkhooly
 - Firebase / Firestore: https://firebase.google.com/docs/firestore
 - Firestore Vector Search: https://firebase.google.com/docs/firestore/vector-search
 - PDF.js: https://mozilla.github.io/pdf.js/
+
+
+---
+
+## حالة التنفيذ الفعلية — تحديث 25 نوفمبر 2026
+
+> هذا القسم يسجل ما تم دمجه في الكود بالفعل، ويفصل بين المنفذ والمخطط له. لا تعتبر المراحل المستقبلية مكتملة لمجرد وجودها في خارطة الطريق.
+
+### المنفذ في أول دفعة
+
+- إضافة `backend/services/ai-provider.js` كطبقة موحدة للاتصال بـ OpenRouter.
+- إضافة `GET /api/models` لجلب كتالوج النماذج المجانية الحالي من المزود وقت التشغيل.
+- قصر النماذج التي يمكن اختيارها يدويًا على النماذج ذات تسعير إدخال وإخراج يساوي صفرًا.
+- دعم `openrouter/free` كاختيار تلقائي لنموذج مجاني.
+- إضافة `POST /api/chat` لمدرس محادثة نصي مع سجل محادثة محدود.
+- نقل توليد الخرائط إلى طبقة المزود الموحدة مع التحقق من JSON.
+- إزالة الخريطة العامة الوهمية من مسار فشل الذكاء الاصطناعي؛ يرجع API خطأ مفهومًا بدل تقديم بيانات تجريبية على أنها شرح.
+- إضافة قائمة اختيار نموذج مجانية في الواجهة، وربط أسئلة المتابعة بمحادثة المدرس الحقيقية.
+- جعل خادم Express قابلًا للتصدير، مع استمرار تشغيله محليًا عبر `npm start`.
+- تحديث `.env.example` إلى إعداد OpenRouter.
+
+### ملفات أضيفت
+
+- `backend/services/ai-provider.js`
+- `backend/routes/models.js`
+- `backend/routes/chat.js`
+
+### ملفات تغيرت
+
+- `backend/server.js`
+- `backend/routes/mindmap.js`
+- `backend/package.json`
+- `backend/.env.example`
+- `frontend/index.html`
+
+### إعداد التشغيل المحلي
+
+1. افتح مجلد `backend` في الطرفية.
+2. نفّذ `npm install`.
+3. انسخ `.env.example` إلى `.env`.
+4. ضع مفتاح OpenRouter في `OPENROUTER_API_KEY` داخل `.env`. المفتاح لا يوضع في الواجهة أو GitHub.
+5. شغّل `npm run check` ثم `npm start`.
+6. اختبر `http://localhost:4000/api/health` و`http://localhost:4000/api/models`.
+
+### واجهات API الجديدة
+
+| Method | Endpoint | الوظيفة |
+|---|---|---|
+| GET | `/api/health` | فحص حالة الخادم |
+| GET | `/api/models` | قائمة النماذج المجانية المتاحة |
+| POST | `/api/mindmap` | إنشاء خريطة من `{ "topic": "...", "model": "..." }` |
+| POST | `/api/chat` | سؤال المدرس باستخدام `message` و`history` و`model` |
+
+### ملاحظات مهمة قبل النشر
+
+- لم يتم بعد اختبار الاتصال بمفتاح OpenRouter فعلي؛ لذلك لا ندّعي نجاح طلبات الذكاء الاصطناعي قبل ضبط المفتاح وتشغيل الاختبارات.
+- الواجهة تسمح بتحديد عنوان API عبر `window.ESHRAHLI_API_BASE` قبل سكربت الصفحة. عند نشر الواجهة والباك إند في مشروعين منفصلين على Vercel، اضبط هذا المتغير على رابط الباك إند، واضبط `CORS_ORIGINS` في الباك إند على أصل الواجهة.
+- يمكن نشر الباك إند من مجلد `backend` كمشروع Express مستقل، والواجهة من مجلد `frontend` كموقع Static مستقل. لم يتم إنشاء أو نشر مشاريع Vercel في هذه المرحلة.
+- لم يتم تنفيذ Firebase أو تسجيل الدخول أو PDF أو Embeddings أو OCR أو الاختبارات التعليمية أو الصوت بعد.
+- اختيار النماذج هنا مجاني فقط. لا يوجد تحويل تلقائي إلى موديل مدفوع.
+
+### الخطوة التالية
+
+اختبار API مع مفتاح فعلي، ثم بناء واجهة محادثة متكاملة بدل صندوق الرد المختصر، ثم الانتقال إلى Firebase Authentication ورفع PDF النصّي وتخزينه.
