@@ -18,6 +18,10 @@ import {
   const uploadForm = document.getElementById("pdfUploadForm");
   const fileInput = document.getElementById("pdfFile");
   const docsList = document.getElementById("documentsList");
+  const askForm = document.getElementById("askDocumentForm");
+  const askDocumentSelect = document.getElementById("askDocumentSelect");
+  const askQuestionInput = document.getElementById("askQuestion");
+  const askAnswer = document.getElementById("askDocumentAnswer");
   const accountButton = document.getElementById("accountButton");
   const dialog = document.getElementById("accountDialog");
   const closeButton = document.getElementById("closeAccountDialog");
@@ -42,6 +46,13 @@ import {
 
   function renderDocuments(documents) {
     docsList.replaceChildren();
+    askDocumentSelect.replaceChildren();
+    documents.forEach((doc) => {
+      const option = document.createElement("option");
+      option.value = doc.id;
+      option.textContent = doc.name || "ملف PDF";
+      askDocumentSelect.appendChild(option);
+    });
     if (!documents.length) {
       const empty = document.createElement("p");
       empty.className = "account-muted";
@@ -56,7 +67,7 @@ import {
       const title = document.createElement("strong");
       title.textContent = doc.name || "ملف PDF";
       const meta = document.createElement("small");
-      meta.textContent = (doc.pageCount || 0) + " صفحة · " + (doc.chunkCount || 0) + " مقطع · " + (doc.status || "غير معروف");
+      meta.textContent = (doc.pageCount || 0) + " صفحة · " + (doc.chunkCount || 0) + " مقطع · " + (doc.embeddingStatus === "ready" ? "جاهز للبحث" : doc.status || "بانتظار الفهرسة");
       info.append(title, meta);
       const remove = document.createElement("button");
       remove.type = "button";
@@ -120,6 +131,35 @@ import {
     }
   }
 
+  async function askDocument(event) {
+    event.preventDefault();
+    const documentId = askDocumentSelect.value;
+    const question = askQuestionInput.value.trim();
+    if (!documentId || !question) return showStatus("اختر ملفًا واكتب سؤالك.", true);
+    const button = askForm.querySelector("button[type=submit]");
+    button.disabled = true;
+    button.textContent = "جاري البحث والإجابة...";
+    askAnswer.textContent = "";
+    try {
+      const response = await apiRequest("/api/documents/" + encodeURIComponent(documentId) + "/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question, model: window.ESHRAHLI_SELECTED_MODEL || "openrouter/free" })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "تعذرت الإجابة.");
+      const pages = [...new Set((data.sources || []).map((source) => source.pageStart).filter(Boolean))];
+      askAnswer.textContent = data.answer + (pages.length ? "\n\nالمصادر: الصفحات " + pages.join("، ") : "");
+      askQuestionInput.value = "";
+      showStatus("تمت الإجابة بالاعتماد على مقاطع من الكتاب.");
+    } catch (error) {
+      showStatus(error.message, true);
+      askAnswer.textContent = error.message;
+    } finally {
+      button.disabled = false;
+      button.textContent = "اسأل الكتاب";
+    }
+  }
   async function uploadPdf(event) {
     event.preventDefault();
     if (!fileInput.files?.[0]) return showStatus("اختر ملف PDF أولًا.", true);
@@ -138,6 +178,21 @@ import {
       if (!response.ok) throw new Error(data.error || "تعذرت معالجة الملف.");
       showStatus(data.message || "تم رفع الملف.");
       fileInput.value = "";
+      const documentId = data.document?.id;
+      if (documentId && data.document?.embeddingStatus !== "ready") {
+        let remaining = Number(data.document?.chunkCount || 0);
+        while (remaining > 0) {
+          showStatus("تم استخراج النص. جاري تجهيز البحث الدلالي... متبقي " + remaining + " مقطع.");
+          const indexResponse = await apiRequest("/api/documents/" + encodeURIComponent(documentId) + "/index", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ limit: 5 })
+          });
+          const indexData = await indexResponse.json();
+          if (!indexResponse.ok) throw new Error(indexData.error || "تعذر تجهيز البحث الدلالي.");
+          remaining = Number(indexData.remaining || 0);
+          if (indexData.complete) break;
+        }
+        showStatus("اكتملت فهرسة الملف. تقدر تسأله الآن.");
+      }
       await loadDocuments();
     } catch (error) {
       showStatus(error.message, true);
@@ -156,6 +211,7 @@ import {
     if (auth) await signOut(auth);
   });
   uploadForm.addEventListener("submit", uploadPdf);
+  askForm.addEventListener("submit", askDocument);
 
   if (!config || !config.apiKey || config.apiKey.startsWith("YOUR_")) {
     showStatus("لتمكين الحسابات ورفع PDF: انسخ firebase-config.example.js إلى firebase-config.js وأضف إعدادات تطبيق Firebase Web.", true);
@@ -172,6 +228,7 @@ import {
       authForm.hidden = !!user;
       uploadForm.hidden = !user;
       docsList.hidden = !user;
+      askForm.hidden = !user;
       showStatus(user ? "أهلًا " + (user.displayName || user.email) + " — ملفاتك محفوظة في حسابك." : "سجّل الدخول للوصول إلى ملفاتك.");
       if (user) await loadDocuments();
       else renderDocuments([]);
