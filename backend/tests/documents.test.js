@@ -15,3 +15,11 @@ test("PDF extractor rejects empty buffers", async () => {
     (error) => error.status === 400
   );
 });
+
+test("embedding service reports missing Gemini key", async () => {
+  const previous = process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_API_KEY;
+  const { embedText } = require("../services/gemini-embeddings");
+  await assert.rejects(embedText("اختبار"), (error) => error.status === 503);
+  if (previous !== undefined) process.env.GEMINI_API_KEY = previous;
+});
