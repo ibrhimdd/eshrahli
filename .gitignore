@@ -2,3 +2,6 @@ node_modules/
 .env
 *.log
 .DS_Store
+
+# Firebase client config is public config but environment-specific.
+frontend/firebase-config.js
