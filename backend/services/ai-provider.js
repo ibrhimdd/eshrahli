@@ -30,19 +30,28 @@ async function request(path, options = {}) {
   return response.json();
 }
 
-function free(model) {
-  return Number(model?.pricing?.prompt) === 0 && Number(model?.pricing?.completion) === 0;
+function freeTextModel(model) {
+  const input = model?.architecture?.input_modalities || [];
+  const output = model?.architecture?.output_modalities || [];
+  return Number(model?.pricing?.prompt) === 0 &&
+    Number(model?.pricing?.completion) === 0 &&
+    input.includes("text") && output.includes("text");
 }
 
+let modelCache = { expiresAt: 0, models: [] };
+
 async function listModels() {
+  if (Date.now() < modelCache.expiresAt) return modelCache.models;
   const result = await request("/models");
-  return (result.data || []).filter(free).map((m) => ({
+  const models = (result.data || []).filter(freeTextModel).map((m) => ({
     id: m.id,
     name: m.name || m.id,
     contextLength: m.context_length || null,
     supportsImages: (m.architecture?.input_modalities || []).includes("image"),
     free: true
   })).sort((a, b) => a.name.localeCompare(b.name));
+  modelCache = { models, expiresAt: Date.now() + 5 * 60 * 1000 };
+  return models;
 }
 
 async function resolveModel(value) {
