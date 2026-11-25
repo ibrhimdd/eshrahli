@@ -265,6 +265,7 @@ import {
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
       window.ESHRAHLI_IS_AUTHENTICATED = !!user;
+      window.dispatchEvent(new CustomEvent("eshrahli:auth-state", { detail: { signedIn: !!user } }));
       logoutButton.hidden = !user;
       authForm.hidden = !!user;
       uploadForm.hidden = !user;
