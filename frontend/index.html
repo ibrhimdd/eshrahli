@@ -224,6 +224,11 @@ img{max-width:100%}
       <input id="askQuestion" type="text" maxlength="2500" placeholder="مثال: اشرح لي الفكرة الرئيسية في الفصل الثاني" required>
     </label>
     <button type="submit">اسأل الكتاب</button>
+    <div class="account-actions">
+      <button id="generateDocumentMap" type="button">حوّل الجزء إلى خريطة ذهنية</button>
+      <button id="generateDocumentQuiz" type="button">أنشئ اختبارًا من الكتاب</button>
+    </div>
+    <div id="generatedQuiz" aria-live="polite"></div>
     <div id="askDocumentAnswer" aria-live="polite"></div>
   </form>
   <p id="accountStatus" class="account-status" role="status" aria-live="polite">يتم تجهيز الحساب...</p>
@@ -702,6 +707,10 @@ img{max-width:100%}
   document.getElementById("zoomOut").addEventListener("click", function(){ zoom -= 0.2; applyZoom(); });
 
   clearBoard();
+
+  window.addEventListener("eshrahli:render-mindmap", function(event){
+    if (event.detail && event.detail.title && Array.isArray(event.detail.branches)) startTopic(event.detail);
+  });
 
   window.addEventListener("eshrahli:auth-state", function(event){
     if (!event.detail || !event.detail.signedIn) {
