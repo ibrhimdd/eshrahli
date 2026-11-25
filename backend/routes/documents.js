@@ -8,7 +8,7 @@ const { extractPdf } = require("../services/pdf-extractor");
 const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: Number(process.env.PDF_MAX_BYTES || 15 * 1024 * 1024), files: 1 },
+  limits: { fileSize: Number(process.env.PDF_MAX_BYTES || 4 * 1024 * 1024), files: 1 },
   fileFilter(_req, file, callback) {
     const validName = /\.pdf$/i.test(file.originalname || "");
     if (file.mimetype !== "application/pdf" || !validName) {
