@@ -1,96 +1,51 @@
 const express = require("express");
+const { chatCompletion } = require("../services/ai-provider");
 const router = express.Router();
 
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-3-haiku-20240307";
-
-// خريطة عامة بديلة بتتستخدم لو مفيش مفتاح ذكاء اصطناعي، أو لو الطلب لنموذج الذكاء الاصطناعي فشل.
-function buildGeneric(topic) {
-  return {
-    title: topic,
-    generic: true,
-    branches: [
-      { label: "التعريف", children: ["المفهوم الأساسي"] },
-      { label: "الأنواع", highlight: true, children: ["النوع الأول", "النوع الثاني"] },
-      { label: "أمثلة", children: ["مثال تطبيقي"] },
-      { label: "الأهمية", children: ["ليه بندرسه"] },
-    ],
-  };
-}
-
 function isValidMindMap(data) {
-  return (
-    !!data &&
-    typeof data.title === "string" &&
-    Array.isArray(data.branches) &&
-    data.branches.length > 0 &&
-    data.branches.every(
-      (b) => typeof b.label === "string" && Array.isArray(b.children)
-    )
-  );
+  return !!data && typeof data.title === "string" &&
+    Array.isArray(data.branches) && data.branches.length > 0 &&
+    data.branches.length <= 8 && data.branches.every((branch) =>
+      typeof branch.label === "string" && Array.isArray(branch.children) &&
+      branch.children.length <= 8 && branch.children.every((child) => typeof child === "string")
+    );
 }
 
 function extractJson(text) {
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("مفيش JSON في رد النموذج");
-  return JSON.parse(match[0]);
-}
-
-async function callAnthropic(topic) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-
-  const prompt = [
-    "انت مساعد بيحول أي موضوع دراسي لخريطة ذهنية (mind map) باللغة العربية.",
-    `الموضوع: "${topic}"`,
-    "رجّعلي JSON فقط، من غير أي شرح أو تنسيق Markdown، بالشكل ده بالظبط:",
-    '{"title":"اسم الموضوع","branches":[{"label":"اسم الفرع","highlight":false,"children":["نقطة فرعية 1","نقطة فرعية 2"]}]}',
-    "اعمل من 3 إلى 4 فروع، وكل فرع من نقطتين لـ 3 نقاط فرعية قصيرة.",
-    "خلي فرع واحد بس highlight:true (الأهم في الموضوع).",
-    "كل النصوص لازم تكون عربية فصحى بسيطة ومختصرة (كلمة لـ 4 كلمات لكل عنصر).",
-  ].join("\n");
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 700,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`فشل طلب Anthropic: ${response.status} ${body}`);
-  }
-
-  const json = await response.json();
-  const textBlock = (json.content || []).find((c) => c.type === "text");
-  if (!textBlock) throw new Error("مفيش نص في رد Anthropic");
-
-  const data = extractJson(textBlock.text);
-  if (!isValidMindMap(data)) throw new Error("شكل JSON اللي رجع مش مطابق للمتوقع");
-  return data;
+  const cleaned = text.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("لم يرجع النموذج JSON صالحًا.");
+  return JSON.parse(cleaned.slice(start, end + 1));
 }
 
 router.post("/", async (req, res) => {
-  const topic = (req.body && req.body.topic ? String(req.body.topic) : "").trim();
-  if (!topic) {
-    return res.status(400).json({ error: "محتاج تبعت topic في جسم الطلب" });
-  }
+  const topic = String(req.body?.topic || "").trim();
+  if (!topic) return res.status(400).json({ error: "اكتب الموضوع المطلوب." });
+  if (topic.length > 3000) return res.status(413).json({ error: "الموضوع طويل جدًا؛ اختصره إلى 3000 حرف." });
+
+  const prompt = `حوّل الموضوع التالي إلى خريطة ذهنية تعليمية عربية واضحة.
+أعد JSON فقط بالشكل:
+{"title":"عنوان","branches":[{"label":"فرع","highlight":false,"children":["نقطة","نقطة"]}]}
+أنشئ 3 إلى 6 فروع، ولكل فرع 2 إلى 4 نقاط قصيرة. اجعل فرعًا واحدًا فقط highlight=true.
+لا تضف Markdown أو نصًا خارج JSON. لا تخترع تفاصيل غير مؤكدة.
+الموضوع:
+${topic}`;
 
   try {
-    const aiResult = await callAnthropic(topic);
-    if (aiResult) return res.json(aiResult);
-  } catch (err) {
-    console.warn("[mindmap] فشل توليد الخريطة بالذكاء الاصطناعي، هنرجع خريطة عامة:", err.message);
+    const result = await chatCompletion({
+      model: req.body?.model, temperature: 0.3, maxTokens: 1600,
+      messages: [{ role: "user", content: prompt }]
+    });
+    const map = extractJson(result.content);
+    if (!isValidMindMap(map)) throw new Error("بنية الخريطة التي أنشأها النموذج غير مطابقة.");
+    res.json({ ...map, model: result.model, generic: false });
+  } catch (error) {
+    res.status(error.status || 502).json({
+      error: "تعذر إنشاء خريطة ذهنية حقيقية الآن. لم نعرض خريطة تجريبية بدلًا منها.",
+      details: process.env.NODE_ENV === "production" ? undefined : error.message
+    });
   }
-
-  return res.json(buildGeneric(topic));
 });
 
 module.exports = router;
