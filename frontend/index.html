@@ -594,7 +594,7 @@ body{background:
     return e;
   }
   function wrapLabel(value, maxChars){
-    var words = String(value || "").split(/\\s+/);
+    var words = String(value || "").split(/\s+/);
     var lines = [];
     var line = "";
     words.forEach(function(word){
