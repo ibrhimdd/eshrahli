@@ -140,6 +140,145 @@ img{max-width:100%}
   #topicInput{font-size:14px}
   .send-btn{padding:10px 14px;font-size:13px}
 }
+
+/* Eshrahli design refresh — accessible, consistent light-first palette */
+:root:not([data-theme="dark"]){
+  --bg:#F3F7F8;
+  --board:#F8FBFC;
+  --panel:#FFFFFF;
+  --ink:#172B3A;
+  --ink-soft:#536777;
+  --accent:#F4B860;
+  --accent-ink:#382407;
+  --line:#087E8B;
+  --line-soft:#3B9AA3;
+  --grid:#DCE7EB;
+  --shadow:rgba(23,43,58,.10);
+  --danger:#B42318;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#101B24;
+  --board:#14232E;
+  --panel:#192B37;
+  --ink:#F1F6F8;
+  --ink-soft:#B6C7D1;
+  --accent:#F4B860;
+  --accent-ink:#30200A;
+  --line:#63C2C8;
+  --line-soft:#4A9DA7;
+  --grid:#2B414E;
+  --shadow:rgba(0,0,0,.28);
+  --danger:#FF8A80;
+  color-scheme:dark;
+}
+/* Do not let the operating-system theme silently change the app palette. */
+html,body{min-height:100%;background:var(--bg);color:var(--ink)}
+body{background:
+  radial-gradient(circle at 12% 8%,rgba(8,126,139,.07),transparent 28rem),
+  var(--bg)}
+.app{min-height:100dvh}
+.topbar{
+  min-height:68px;padding:12px clamp(14px,3vw,30px);
+  background:var(--panel);border-bottom:1px solid var(--grid);
+  box-shadow:0 3px 18px var(--shadow);position:relative;z-index:6
+}
+.brand{gap:11px}
+.brand-icon{
+  width:38px;height:38px;display:grid;place-items:center;
+  border-radius:12px;background:rgba(8,126,139,.11);font-size:20px
+}
+.brand-name{font-family:var(--font-ui);font-size:23px;font-weight:800;color:var(--ink)}
+.badge{color:var(--line);border-color:rgba(8,126,139,.28);background:rgba(8,126,139,.06)}
+.account-button{
+  border-color:var(--grid);background:var(--panel);color:var(--ink);
+  padding:9px 15px;font-size:13px;font-weight:700;transition:.18s ease
+}
+.account-button:hover{border-color:var(--line);background:rgba(8,126,139,.07)}
+#modelSelect{
+  max-width:240px;min-height:40px;border-color:var(--grid);
+  background:var(--bg);color:var(--ink);font-size:13px
+}
+.board-wrap{background:var(--board)}
+.board-scroll{
+  background-image:radial-gradient(rgba(8,126,139,.11) .8px,transparent .8px);
+  background-size:24px 24px
+}
+.empty-state{background:transparent;gap:14px;padding:clamp(20px,5vw,48px)}
+.empty-state h1{
+  margin:0;color:var(--ink);font-size:clamp(25px,4vw,38px);
+  font-weight:800;letter-spacing:-.5px
+}
+.empty-state p{max-width:510px;color:var(--ink-soft);font-size:16px;line-height:1.9}
+.chips{max-width:620px;gap:10px;margin-top:6px}
+.chip{
+  color:var(--line);background:var(--panel);border:1px solid var(--grid);
+  padding:10px 16px;font-weight:700;box-shadow:0 3px 12px var(--shadow);
+  transition:transform .18s ease,background .18s ease,border-color .18s ease
+}
+.chip:hover{background:var(--line);border-color:var(--line);color:#fff;transform:translateY(-2px)}
+.zoom-controls button,.skip-btn{
+  background:var(--panel);color:var(--ink);border-color:var(--grid);
+  box-shadow:0 4px 14px var(--shadow)
+}
+.skip-btn{color:var(--line);font-weight:700}
+.composer{
+  gap:10px;padding:13px clamp(14px,3vw,30px);
+  background:var(--panel);border-top:1px solid var(--grid);
+  box-shadow:0 -4px 18px var(--shadow)
+}
+/* Audio and image controls are intentionally hidden until their actions are implemented. */
+.composer .icon-btn{display:none}
+#topicInput{
+  min-height:48px;padding:12px 18px;border-radius:14px;
+  background:var(--bg);border:1px solid var(--grid);font-size:15px;
+  outline:none;transition:border-color .18s ease,box-shadow .18s ease
+}
+#topicInput:focus{border-color:var(--line);box-shadow:0 0 0 3px rgba(8,126,139,.13)}
+.send-btn{
+  min-height:48px;padding:11px 22px;border-radius:14px;
+  background:var(--line);font-size:14px;box-shadow:0 4px 12px rgba(8,126,139,.2);
+  transition:transform .18s ease,filter .18s ease
+}
+.send-btn:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1px)}
+.hint{color:var(--ink-soft)}
+.account-dialog{
+  background:var(--panel);color:var(--ink);border-color:var(--grid);
+  box-shadow:0 24px 80px rgba(8,24,35,.28)
+}
+.account-dialog input,.account-dialog select{
+  background:var(--bg)!important;color:var(--ink)!important;border-color:var(--grid)!important
+}
+.account-dialog button{font-weight:600}
+.account-dialog button:focus-visible,.account-button:focus-visible,
+#modelSelect:focus-visible,.account-actions button:focus-visible,
+.account-dialog input:focus-visible{
+  outline:3px solid rgba(8,126,139,.35);outline-offset:2px
+}
+.account-status{background:rgba(8,126,139,.08);color:var(--ink)}
+.account-status[data-state="error"]{background:rgba(180,35,24,.09);color:var(--danger)}
+.document-item{border-color:var(--grid)}
+#askDocumentAnswer{background:var(--bg);color:var(--ink)}
+@media (max-width:640px){
+  .topbar{align-items:flex-start;flex-wrap:wrap;gap:10px;padding:10px 12px}
+  .brand{flex:1 0 100%}
+  .topbar>div:last-child{width:100%;display:flex;gap:8px}
+  .account-button{flex:0 0 auto}
+  #modelSelect{flex:1;max-width:none;min-width:0}
+  .board-wrap{min-height:260px}
+  .empty-state{justify-content:center;gap:12px}
+  .empty-state p{font-size:14px;line-height:1.8}
+  .chips{gap:8px}
+  .chip{font-size:12px;padding:9px 12px}
+  .composer{padding:10px 12px max(10px,env(safe-area-inset-bottom,0px))}
+  #topicInput{min-height:46px;font-size:14px;padding-inline:13px}
+  .send-btn{min-height:46px;padding-inline:15px;white-space:nowrap}
+  .zoom-controls{bottom:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
+
 </style>
 </head>
 <body>
@@ -159,7 +298,7 @@ img{max-width:100%}
     <div class="chat-reply" id="chatReply" hidden aria-live="polite"></div>
 
     <div class="empty-state" id="emptyState">
-      <p>اكتب أي موضوع بتذاكره تحت، وهتلاقي السبورة بترسملك خريطة ذهنية بالخط اليدوي خطوة بخطوة — زي فكرة Knowie بالظبط.</p>
+      <h1>خلّي المعلومة ترسم نفسها</h1><p>اكتب موضوع مذاكرتك، وسيحوّله المدرس الذكي إلى خريطة ذهنية واضحة، ثم اسأله وتعمّق في التفاصيل خطوة بخطوة.</p>
       <div class="chips">
         <button class="chip" type="button" data-topic="mirrors">المرايا في الفيزياء</button>
         <button class="chip" type="button" data-topic="blood">الدورة الدموية</button>
@@ -178,8 +317,8 @@ img{max-width:100%}
 
   <p class="hint" id="hint" hidden>المواضيع الجاهزة بترسم فورًا. لأي موضوع جديد، اكتب سؤالك وسيحاول المدرس الذكي إنشاء خريطة حقيقية؛ لو الخدمة غير متاحة هيظهر لك تنبيه بدل خريطة وهمية.</p>
   <form class="composer" id="composer">
-    <button type="button" class="icon-btn" title="تسجيل صوتي (شكلي في الديمو)">🎙️</button>
-    <button type="button" class="icon-btn" title="إرفاق صورة (شكلي في الديمو)">📷</button>
+    <button type="button" class="icon-btn" title="التسجيل الصوتي غير متاح حاليًا" aria-hidden="true" tabindex="-1">🎙️</button>
+    <button type="button" class="icon-btn" title="إرفاق الصور غير متاح حاليًا" aria-hidden="true" tabindex="-1">📷</button>
     <input id="topicInput" type="text" placeholder="اكتب موضوعك هنا... مثلاً: التمثيل الضوئي" autocomplete="off" maxlength="60">
     <button type="submit" class="send-btn" id="sendBtn">ابدأ الشرح</button>
   </form>
