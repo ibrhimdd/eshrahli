@@ -57,6 +57,12 @@ img{max-width:100%}
 .account-head h2{margin:0;font-family:var(--font-ink);font-size:22px}
 .account-dialog input{width:100%;padding:10px 12px;border:1px solid var(--grid);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;margin-top:5px}
 .account-dialog label{display:block;margin:10px 0;font-size:13px}
+.password-field{display:flex;align-items:center;gap:8px}
+.password-field input{flex:1;min-width:0}
+.password-field button{flex:0 0 auto;margin-top:5px;white-space:nowrap}
+#forgotPasswordButton{font-size:12px;color:var(--line)}
+#pdfUploadForm input[type=file]{padding:10px;border:1px dashed var(--line-soft);border-radius:12px;background:var(--bg)}
+.document-item button{flex:0 0 auto}
 .account-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .account-actions button,.account-dialog button{border:1px solid var(--grid);border-radius:10px;padding:8px 12px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
 .account-actions button.active,.account-dialog button[type=submit]{background:var(--line);color:#fff;border-color:var(--line)}
@@ -293,7 +299,7 @@ body{background:
 
   <div class="board-wrap" id="boardWrap">
     <div class="board-scroll" id="boardScroll">
-      <svg id="board" viewBox="0 0 1000 1000" width="1000" style="width:1000px;height:auto" role="img" aria-label="سبورة بيضاء تعرض خريطة ذهنية متحركة للموضوع المطلوب"></svg>
+      <svg id="board" viewBox="0 0 1800 1800" width="1800" height="1800" style="width:1800px;height:1800px" role="img" aria-label="سبورة بيضاء تعرض خريطة ذهنية متحركة للموضوع المطلوب"></svg>
     </div>
     <div class="chat-reply" id="chatReply" hidden aria-live="polite"></div>
 
@@ -343,9 +349,10 @@ body{background:
       <input id="accountEmail" type="email" required autocomplete="email">
     </label>
     <label>كلمة المرور
-      <input id="accountPassword" type="password" required minlength="6" autocomplete="current-password">
+      <div class="password-field"><input id="accountPassword" type="password" required minlength="6" autocomplete="current-password"><button id="togglePassword" type="button" aria-label="إظهار كلمة المرور">إظهار</button></div>
     </label>
-    <button type="submit">متابعة</button>
+    <div class="account-actions"><button id="forgotPasswordButton" type="button">نسيت كلمة المرور؟</button></div>
+    <button type="submit" id="authSubmitButton">تسجيل الدخول</button>
   </form>
   <form id="pdfUploadForm" hidden style="margin-top:18px">
     <label>ارفع كتابًا أو مذكرة PDF نصية
@@ -506,29 +513,76 @@ body{background:
     }
   }
 
-  // ---------- layout ----------
-  var CX = 500, CY = 430;
-  var R1 = 190, R2 = 350;
+  // ---------- responsive radial layout ----------
+  var CX = 900, CY = 900;
+  var BRANCH_RADIUS = 285;
+  var boardSize = 1800;
 
   function layout(data){
     var n = data.branches.length;
-    var startAngle = -90;
     var step = 360 / n;
+    var outerRadius = 520;
+
     data.branches.forEach(function(b, i){
-      var angle = startAngle + i * step;
+      var angle = -90 + i * step;
       var rad = angle * Math.PI / 180;
-      b.x = CX + R1 * Math.cos(rad);
-      b.y = CY + R1 * Math.sin(rad);
-      var children = b.children || [];
-      var m = children.length;
-      var spread = 34;
+      b.x = CX + BRANCH_RADIUS * Math.cos(rad);
+      b.y = CY + BRANCH_RADIUS * Math.sin(rad);
+
+      var children = Array.isArray(b.children) ? b.children : [];
+      var count = children.length;
+      var sector = Math.min(76, step * 0.84);
+      var gap = count > 1 ? sector / (count - 1) : sector;
+      var safeGap = Math.max(3.5, gap);
+      // Increase the board radius when a branch has many children so their cards
+      // have enough arc length instead of stacking on top of one another.
+      var requiredRadius = count > 1
+        ? 156 / (2 * Math.sin((safeGap / 2) * Math.PI / 180))
+        : 520;
+      var childRadius = Math.max(520, requiredRadius);
+      outerRadius = Math.max(outerRadius, childRadius);
+
       b.kids = children.map(function(label, j){
-        var off = m > 1 ? (j - (m - 1) / 2) * (spread / (m - 1)) : 0;
-        var cAngle = angle + off;
-        var cRad = cAngle * Math.PI / 180;
-        return { label: label, x: CX + R2 * Math.cos(cRad), y: CY + R2 * Math.sin(cRad) };
+        var childAngle = count > 1
+          ? angle - sector / 2 + j * gap
+          : angle;
+        var childRad = childAngle * Math.PI / 180;
+        return {
+          label: String(label),
+          x: CX + childRadius * Math.cos(childRad),
+          y: CY + childRadius * Math.sin(childRad)
+        };
       });
     });
+
+    var margin = 210;
+    boardSize = Math.max(1800, Math.ceil((outerRadius + margin) * 2 / 100) * 100);
+    CX = CY = boardSize / 2;
+    // Recalculate positions after the canvas center has been enlarged.
+    data.branches.forEach(function(b, i){
+      var angle = -90 + i * step;
+      var rad = angle * Math.PI / 180;
+      b.x = CX + BRANCH_RADIUS * Math.cos(rad);
+      b.y = CY + BRANCH_RADIUS * Math.sin(rad);
+      var children = Array.isArray(b.children) ? b.children : [];
+      var count = children.length;
+      var sector = Math.min(76, step * 0.84);
+      var gap = count > 1 ? sector / (count - 1) : sector;
+      var childRadius = count > 1
+        ? Math.max(520, 156 / (2 * Math.sin((Math.max(3.5, gap) / 2) * Math.PI / 180)))
+        : 520;
+      b.kids = children.map(function(label, j){
+        var childAngle = count > 1 ? angle - sector / 2 + j * gap : angle;
+        var childRad = childAngle * Math.PI / 180;
+        return { label: String(label), x: CX + childRadius * Math.cos(childRad), y: CY + childRadius * Math.sin(childRad) };
+      });
+    });
+
+    board.setAttribute("viewBox", "0 0 " + boardSize + " " + boardSize);
+    board.setAttribute("width", boardSize);
+    board.setAttribute("height", boardSize);
+    board.style.width = (boardSize * zoom) + "px";
+    board.style.height = (boardSize * zoom) + "px";
     return data;
   }
 
@@ -539,11 +593,30 @@ body{background:
     for (var k in attrs){ e.setAttribute(k, attrs[k]); }
     return e;
   }
+  function wrapLabel(value, maxChars){
+    var words = String(value || "").split(/\\s+/);
+    var lines = [];
+    var line = "";
+    words.forEach(function(word){
+      if (!line) { line = word; return; }
+      if ((line + " " + word).length <= maxChars) line += " " + word;
+      else { lines.push(line); line = word; }
+    });
+    if (line) lines.push(line);
+    return lines.length ? lines : [""];
+  }
   function boxSize(text, kind){
-    var len = text.length;
-    if (kind === "center") return { w: clamp(170, len * 15 + 70, 320), h: 78 };
-    if (kind === "branch") return { w: clamp(120, len * 13 + 50, 250), h: 58 };
-    return { w: clamp(90, len * 12 + 36, 190), h: 44 };
+    var maxChars = kind === "center" ? 20 : (kind === "branch" ? 18 : 15);
+    var lines = wrapLabel(text, maxChars);
+    var fontSize = kind === "center" ? 25 : (kind === "branch" ? 18 : 14);
+    var width = kind === "center" ? 310 : (kind === "branch" ? 205 : 156);
+    var lineHeight = kind === "center" ? 31 : (kind === "branch" ? 24 : 19);
+    return {
+      w: clamp(kind === "child" ? 112 : 140, Math.min(width, Math.max.apply(null, lines.map(function(line){ return line.length * fontSize * 0.62 + 28; }))), width),
+      h: Math.max(kind === "child" ? 48 : 58, lines.length * lineHeight + 20),
+      lines: lines,
+      lineHeight: lineHeight
+    };
   }
   function clamp(min, v, max){ return Math.max(min, Math.min(max, v)); }
 
@@ -566,7 +639,7 @@ body{background:
     pattern.appendChild(el("circle", { cx: 2, cy: 2, r: 1.3, fill: "var(--grid)" }));
     defs.appendChild(pattern);
     board.appendChild(defs);
-    board.appendChild(el("rect", { x: 0, y: 0, width: 1000, height: 1000, fill: "url(#dotgrid)" }));
+    board.appendChild(el("rect", { x: 0, y: 0, width: boardSize, height: boardSize, fill: "url(#dotgrid)" }));
     pen = el("text", { x: -100, y: -100, class: "pen-cursor" });
     pen.textContent = "✏️";
     board.appendChild(pen);
@@ -639,7 +712,13 @@ body{background:
         "font-size": kind === "center" ? 26 : (kind === "branch" ? 19 : 15),
         "font-weight": kind === "center" ? 700 : 400
       });
-      text.textContent = node.label;
+      var lines = size.lines || [String(node.label)];
+      text.setAttribute("y", node.y - ((lines.length - 1) * size.lineHeight) / 2);
+      lines.forEach(function(line, index){
+        var tspan = el("tspan", { x: node.x, dy: index === 0 ? 0 : size.lineHeight });
+        tspan.textContent = line;
+        text.appendChild(tspan);
+      });
       group.appendChild(text);
       board.insertBefore(group, pen);
 
@@ -666,8 +745,8 @@ body{background:
     drawing = true;
     skipBtn.hidden = false;
     fastForward = false;
-    clearBoard();
     layout(data);
+    clearBoard();
 
     var center = { x: CX, y: CY, label: data.title };
     await drawNode(center, "center", "var(--ink)", "var(--ink)", "var(--board)");
@@ -839,9 +918,9 @@ body{background:
 
   var zoom = 1;
   function applyZoom(){
-    zoom = clamp(0.6, zoom, 2);
-    board.style.width = (1000 * zoom) + "px";
-    board.style.height = "auto";
+    zoom = clamp(0.45, zoom, 2);
+    board.style.width = (boardSize * zoom) + "px";
+    board.style.height = (boardSize * zoom) + "px";
   }
   document.getElementById("zoomIn").addEventListener("click", function(){ zoom += 0.2; applyZoom(); });
   document.getElementById("zoomOut").addEventListener("click", function(){ zoom -= 0.2; applyZoom(); });
