@@ -9,7 +9,10 @@ test("parseJson accepts fenced JSON responses", () => {
 test("mind map validator accepts the board schema", () => {
   assert.equal(testHelpers.validMap({
     title: "الطاقة",
-    branches: [{ label: "أنواعها", highlight: true, children: ["حركية", "وضع"] }]
+    branches: [
+      { label: "أنواعها", highlight: true, children: ["حركية", "وضع"] },
+      { label: "مصادرها", children: ["الشمس", "الرياح"] }
+    ]
   }), true);
   assert.equal(testHelpers.validMap({ title: "فارغة", branches: [] }), false);
 });
