@@ -349,7 +349,7 @@ import {
     const file = fileInput.files[0];
     const maxBytes = 4 * 1024 * 1024;
     const hasPdfExtension = file.name.toLowerCase().endsWith(".pdf");
-    const acceptedMime = !file.type || file.type === "application/pdf" || file.type === "application/octet-stream";
+    const acceptedMime = !file.type || file.type === "application/pdf" || file.type === "application/x-pdf" || file.type === "application/octet-stream";
     if (!hasPdfExtension || !acceptedMime) {
       return showStatus("اختَر ملف PDF. بعض الهواتف ترسل نوع الملف فارغًا، لذلك نعتمد أيضًا على امتداد الملف وفحصه على الخادم.", true);
     }
