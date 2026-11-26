@@ -87,7 +87,7 @@ img{max-width:100%}
 .board-wrap{position:relative;flex:1;min-height:0;background:var(--board)}
 .chat-reply{position:absolute;top:12px;right:12px;z-index:4;width:min(360px,calc(100% - 24px));max-height:42%;overflow:auto;padding:12px 14px;border:1px solid var(--grid);border-radius:14px;background:var(--panel);color:var(--ink);box-shadow:0 4px 18px var(--shadow);font-size:14px;line-height:1.8;white-space:pre-wrap}
 .chat-reply[hidden]{display:none}
-.board-scroll{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch}
+.board-scroll{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;direction:ltr}
 #board{display:block}
 .pen-cursor{font-size:30px;opacity:0;pointer-events:none;text-anchor:middle;dominant-baseline:central;transition:opacity .15s}
 
@@ -752,6 +752,11 @@ body{background:
     fastForward = false;
     layout(data);
     clearBoard();
+    var scrollArea = document.getElementById("boardScroll");
+    if (scrollArea) {
+      scrollArea.scrollLeft = Math.max(0, (boardSize * zoom - scrollArea.clientWidth) / 2);
+      scrollArea.scrollTop = Math.max(0, (boardSize * zoom - scrollArea.clientHeight) / 2);
+    }
 
     var center = { x: CX, y: CY, label: data.title };
     await drawNode(center, "center", "var(--ink)", "var(--ink)", "var(--board)");
