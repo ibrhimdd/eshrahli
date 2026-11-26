@@ -13,7 +13,15 @@ const upload = multer({
   limits: { fileSize: Number(process.env.PDF_MAX_BYTES || 4 * 1024 * 1024), files: 1 },
   fileFilter(_req, file, callback) {
     const validName = /\.pdf$/i.test(file.originalname || "");
-    if (file.mimetype !== "application/pdf" || !validName) {
+    const mime = String(file.mimetype || "").toLowerCase();
+    // Android/iOS document pickers sometimes report an empty or generic MIME type.
+    // The PDF signature is validated after upload by extractPdf, so don't reject those clients here.
+    const acceptedMime = !mime || [
+      "application/pdf",
+      "application/x-pdf",
+      "application/octet-stream"
+    ].includes(mime);
+    if (!validName || !acceptedMime) {
       const error = new Error("ارفع ملف PDF فقط.");
       error.status = 400;
       return callback(error);
