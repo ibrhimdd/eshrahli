@@ -7,7 +7,10 @@ async function requireAuth(req, res, next) {
 
   try {
     const { auth } = getFirebaseAdmin();
-    const decoded = await auth.verifyIdToken(match[1], true);
+    // Verify signature, issuer, audience and expiry without the extra revocation
+    // lookup. The latter calls getUser() and requires firebaseauth.users.get
+    // on the service account; production currently lacks that permission.
+    const decoded = await auth.verifyIdToken(match[1]);
     req.user = { uid: decoded.uid, email: decoded.email || null };
     return next();
   } catch (error) {
