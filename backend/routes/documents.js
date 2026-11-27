@@ -113,13 +113,26 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
 router.get("/", requireAuth, async (req, res) => {
   try {
     const { db } = getFirebaseAdmin();
+    // Filter by owner in Firestore, then sort locally to avoid requiring a
+    // composite index on ownerUid + createdAt in newly configured projects.
     const snapshot = await db.collection("documents")
       .where("ownerUid", "==", req.user.uid)
-      .orderBy("createdAt", "desc")
-      .limit(50)
       .get();
-    res.json({ documents: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) });
+    const documents = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => {
+        const time = (value) => value && typeof value.toMillis === "function"
+          ? value.toMillis()
+          : value && typeof value.seconds === "number" ? value.seconds * 1000 : 0;
+        return time(b.createdAt) - time(a.createdAt);
+      })
+      .slice(0, 50);
+    res.json({ documents });
   } catch (error) {
+    console.error("Document list failed:", {
+      code: error.code || "unknown",
+      message: error.message || "Unknown Firestore error"
+    });
     res.status(error.status || 500).json({ error: "تعذر تحميل ملفاتك." });
   }
 });
