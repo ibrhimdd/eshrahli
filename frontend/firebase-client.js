@@ -90,9 +90,22 @@ import {
 
   async function apiRequest(path, options = {}) {
     if (!currentUser) throw new Error("سجّل الدخول أولًا.");
-    const token = await currentUser.getIdToken();
-    const headers = { ...(options.headers || {}), Authorization: "Bearer " + token };
-    return fetch(apiBase + path, { ...options, headers });
+    let token = await currentUser.getIdToken();
+    const send = (value) => fetch(apiBase + path, {
+      ...options,
+      headers: { ...(options.headers || {}), Authorization: "Bearer " + value }
+    });
+    let response = await send(token);
+    if (response.status === 401) {
+      // Firebase ID tokens are short-lived; refresh once before treating the session as invalid.
+      token = await currentUser.getIdToken(true);
+      response = await send(token);
+      if (response.status === 401) {
+        await signOut(auth);
+        throw new Error("انتهت صلاحية جلسة الحساب. سجّل الدخول مرة أخرى.");
+      }
+    }
+    return response;
   }
 
   window.ESHRAHLI_API_REQUEST = apiRequest;
@@ -412,7 +425,7 @@ import {
     }
   }
 
-  accountButton.addEventListener("click", () => dialog.showModal());
+  accountButton.addEventListener("click", () => { window.location.href = "./account.html"; });
   closeButton.addEventListener("click", () => dialog.close());
   loginButton.addEventListener("click", () => setMode("login"));
   forgotPasswordButton.addEventListener("click", resetPassword);
@@ -446,6 +459,7 @@ import {
       window.ESHRAHLI_IS_AUTHENTICATED = !!user;
       window.dispatchEvent(new CustomEvent("eshrahli:auth-state", { detail: { signedIn: !!user } }));
       logoutButton.hidden = !user;
+      accountButton.textContent = user ? "حسابي" : "تسجيل الدخول";
       authForm.hidden = !!user;
       if (forgotPasswordButton) forgotPasswordButton.hidden = !!user || mode !== "login";
       uploadForm.hidden = !user;
