@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f3f7f8">
+<title>حسابي | اشرحلي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap">
+<style>
+:root{font-family:'Tajawal',sans-serif;color:#172b3a;background:#f3f7f8;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 12% 5%,rgba(8,126,139,.09),transparent 28rem),#f3f7f8}
+button,input{font:inherit}button{cursor:pointer}
+header{height:72px;background:#fff;border-bottom:1px solid #dce7eb;display:flex;align-items:center;justify-content:space-between;padding:0 max(18px,calc((100% - 1080px)/2))}
+.brand{font-size:23px;font-weight:800;color:#087e8b;text-decoration:none}.back{color:#087e8b;text-decoration:none;font-weight:700}
+main{width:min(100% - 28px,980px);margin:34px auto 60px}
+.hero{margin-bottom:22px}.eyebrow{color:#087e8b;font-size:13px;font-weight:700}.hero h1{font-size:clamp(27px,5vw,38px);margin:5px 0;color:#172b3a}.hero p{color:#536777;margin:0;line-height:1.8}
+.card{background:#fff;border:1px solid #dce7eb;border-radius:20px;padding:clamp(18px,4vw,30px);box-shadow:0 12px 36px rgba(23,43,58,.06);margin-bottom:18px}
+.auth-card{max-width:500px;margin:30px auto}.card h2{margin:0 0 8px;font-size:23px}.muted{color:#536777;line-height:1.75;margin:0 0 18px}
+label{display:block;font-weight:700;font-size:14px;margin:13px 0 6px}input[type=email],input[type=password],input[type=text],input[type=file]{display:block;width:100%;margin-top:7px;border:1px solid #dce7eb;border-radius:12px;padding:12px 14px;background:#f8fbfc;color:#172b3a;outline:none}
+input:focus{border-color:#087e8b;box-shadow:0 0 0 3px rgba(8,126,139,.12)}
+.primary{width:100%;border:0;border-radius:12px;background:#087e8b;color:#fff;font-weight:800;padding:13px 18px;margin-top:15px}.primary:disabled{opacity:.55;cursor:wait}
+.secondary{border:1px solid #dce7eb;border-radius:11px;background:#fff;color:#087e8b;padding:9px 13px;font-weight:700}
+.text-button{border:0;background:none;color:#087e8b;font-weight:700;padding:10px 0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.status{border-radius:12px;padding:12px 14px;background:#eef7f7;color:#24545a;line-height:1.7;margin-top:14px;font-size:14px}
+.status[data-error=true]{background:#fff1ef;color:#a32d21}
+.hidden{display:none!important}
+.profile{display:flex;align-items:center;gap:15px}.avatar{width:54px;height:54px;border-radius:17px;background:#e5f3f3;color:#087e8b;display:grid;place-items:center;font-size:25px;font-weight:800}
+.profile h2{margin:0 0 4px}.profile p{margin:0;color:#536777;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 11px;background:#e8f7ee;color:#187344;font-size:12px;font-weight:800}
+.section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}.section-title h2{margin:0}
+.docs{display:grid;gap:10px}.doc{border:1px solid #e3ecef;border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}.doc-info{min-width:0}.doc strong{display:block;overflow-wrap:anywhere}.doc small{display:block;color:#536777;margin-top:5px;line-height:1.6}.doc-actions{display:flex;gap:7px;flex-wrap:wrap}.delete{color:#a32d21;border-color:#f1d6d2}
+.method{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.method div{padding:13px;border-radius:13px;background:#f3f7f8}.method b{display:block;color:#087e8b;margin-bottom:4px}.method span{font-size:13px;color:#536777;line-height:1.7}
+@media(max-width:600px){header{height:62px}.brand{font-size:20px}.card{border-radius:16px}.doc{align-items:flex-start;flex-direction:column}.doc-actions{width:100%}.doc-actions button{flex:1}.method{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><a class="brand" href="./index.html">اشرحلي</a><a class="back" href="./index.html">العودة إلى السبورة ←</a></header>
+<main>
+  <section class="hero"><div class="eyebrow">مساحتك التعليمية</div><h1>حسابك وملفاتك</h1><p>سجّل الدخول مرة واحدة، وارجع لكتبك وملفاتك في أي وقت.</p></section>
+
+  <section class="card auth-card" id="authPanel">
+    <h2 id="authTitle">أهلًا بعودتك 👋</h2>
+    <p class="muted" id="authDescription">سجّل الدخول للوصول إلى ملفاتك ومتابعة التعلم.</p>
+    <form id="authForm">
+      <div id="nameField" class="hidden"><label for="displayName">الاسم</label><input id="displayName" type="text" maxlength="80" autocomplete="name" placeholder="اكتب اسمك"></div>
+      <label for="email">البريد الإلكتروني</label><input id="email" type="email" required autocomplete="email" placeholder="name@example.com">
+      <label for="password">كلمة المرور</label><input id="password" type="password" required minlength="6" autocomplete="current-password" placeholder="6 أحرف على الأقل">
+      <button class="primary" id="submitButton" type="submit">تسجيل الدخول</button>
+    </form>
+    <div class="row" style="margin-top:8px"><button class="text-button" id="switchMode" type="button">إنشاء حساب جديد</button><button class="text-button" id="resetPassword" type="button">نسيت كلمة المرور؟</button></div>
+    <div id="authStatus" class="status" role="status" aria-live="polite">جاري التحقق من جلسة الدخول...</div>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="card">
+      <div class="row">
+        <div class="profile"><div class="avatar" id="avatar">؟</div><div><h2 id="profileName">حسابي</h2><p id="profileEmail"></p></div></div>
+        <div class="row"><span class="pill">● مسجل الدخول</span><button class="secondary" id="logoutButton" type="button">تسجيل الخروج</button></div>
+      </div>
+      <div id="dashboardStatus" class="status" role="status" aria-live="polite">حسابك جاهز.</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><h2>ملفاتي السابقة</h2><button class="secondary" id="refreshButton" type="button">تحديث القائمة</button></div>
+      <p class="muted">كل ملف هنا مرتبط بحسابك فقط. يمكنك متابعة حالة معالجته أو حذفه.</p>
+      <div id="documentsList" class="docs"><p class="muted">جاري تحميل الملفات...</p></div>
+    </div>
+
+    <div class="card">
+      <h2>رفع كتاب أو مذكرة جديدة</h2>
+      <p class="muted">ارفع ملف PDF نصّي، وسنستخرج النص ونجهزه حتى تقدر تسأله.</p>
+      <form id="uploadForm"><label for="pdfFile">ملف PDF</label><input id="pdfFile" type="file" accept=".pdf,application/pdf" required><button class="primary" id="uploadButton" type="submit">رفع وتحليل الملف</button></form>
+      <div id="uploadStatus" class="status" role="status" aria-live="polite">الحد الحالي 4 ميجابايت و100 صفحة.</div>
+    </div>
+
+    <div class="card">
+      <h2>كيف تتم معالجة ملفاتك؟</h2>
+      <p class="muted">هذه هي التقنيات المستخدمة حاليًا في مسار رفع ومعالجة الكتب داخل اشرحلي:</p>
+      <div class="method">
+        <div><b>1. استقبال الملف</b><span>المتصفح يرسل PDF إلى Backend باستخدام HTTP multipart/form-data، والخادم يستقبله عبر Express وMulter في الذاكرة.</span></div>
+        <div><b>2. استخراج النص</b><span>مكتبة PDF.js تقرأ صفحات الملف وتستخرج النص القابل للتحديد والنسخ، ثم تقسّمه إلى مقاطع مرتبطة بأرقام الصفحات.</span></div>
+        <div><b>3. حفظ المحتوى</b><span>بيانات الملف والمقاطع النصية تُحفظ في Cloud Firestore، مع ربطها بمعرّف حسابك.</span></div>
+        <div><b>4. البحث الذكي</b><span>Gemini Embedding 2 ينشئ المتجهات، وتُحفظ في Firestore Vector Search لاسترجاع المقاطع ذات الصلة.</span></div>
+      </div>
+      <p class="muted" style="margin:15px 0 0">مهم: النسخة الحالية لا تحتفظ بنسخة PDF الأصلية في Firebase Storage؛ تحفظ النص المستخرج والمقاطع والمتجهات في Firestore. ملفات PDF المصوّرة التي تحتاج OCR غير مدعومة حاليًا.</p>
+    </div>
+  </section>
+</main>
+<script src="./api-config.js"></script>
+<script src="./firebase-config.js"></script>
+<script type="module" src="./account.js"></script>
+</body>
+</html>
