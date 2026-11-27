@@ -95,7 +95,18 @@ async function extractPdf(buffer) {
       sha256: crypto.createHash("sha256").update(buffer).digest("hex")
     };
   } finally {
-    await pdf.destroy();
+    // PDF.js versions differ: some expose destroy() on the document proxy,
+    // while others expose it on the loading task. Never mask extraction
+    // results with a missing cleanup method.
+    try {
+      if (typeof pdf.destroy === "function") {
+        await pdf.destroy();
+      } else if (typeof loadingTask.destroy === "function") {
+        await loadingTask.destroy();
+      }
+    } catch (cleanupError) {
+      console.warn("PDF cleanup warning:", cleanupError.message);
+    }
   }
 }
 
