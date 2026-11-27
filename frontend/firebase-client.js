@@ -101,8 +101,9 @@ import {
       token = await currentUser.getIdToken(true);
       response = await send(token);
       if (response.status === 401) {
-        await signOut(auth);
-        throw new Error("انتهت صلاحية جلسة الحساب. سجّل الدخول مرة أخرى.");
+        // A backend 401 does not prove that Firebase signed the user out.
+        // Keep the Firebase session and surface the API error for diagnosis.
+        throw new Error("الخادم لم يقبل رمز الدخول حتى بعد تجديده. حسابك ما زال مسجلًا؛ حاول تحديث الصفحة، وإذا تكرر الخطأ سنراجع إعدادات Firebase على الخادم.");
       }
     }
     return response;
