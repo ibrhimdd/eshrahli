@@ -51,6 +51,7 @@ function setMode(next) {
   $("switchMode").textContent = mode === "signup" ? "لديك حساب؟ تسجيل الدخول" : "إنشاء حساب جديد";
   $("resetPassword").classList.toggle("hidden", mode !== "login");
   $("password").autocomplete = mode === "signup" ? "new-password" : "current-password";
+  $("displayName").required = mode === "signup";
   status(authStatus, mode === "signup" ? "أدخل اسمك وبريدك وكلمة المرور لإنشاء حساب." : "أدخل البريد الإلكتروني وكلمة المرور.");
 }
 $("switchMode").addEventListener("click", () => setMode(mode === "login" ? "signup" : "login"));
