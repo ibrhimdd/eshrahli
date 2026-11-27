@@ -51,7 +51,7 @@ img{max-width:100%}
 }
 .brand{display:flex;align-items:center;gap:8px;min-width:0}
 .account-button{border:1px solid var(--grid);background:var(--panel);color:var(--ink);border-radius:999px;padding:7px 12px;font:inherit;font-size:12px;cursor:pointer}
-.account-dialog{width:min(560px,calc(100% - 24px));max-height:85vh;overflow:auto;border:1px solid var(--grid);border-radius:18px;background:var(--panel);color:var(--ink);padding:20px;box-shadow:0 16px 60px rgba(0,0,0,.25)}
+.account-dialog{display:none;width:min(560px,calc(100% - 24px));max-height:85vh;overflow:auto;border:1px solid var(--grid);border-radius:18px;background:var(--panel);color:var(--ink);padding:20px;box-shadow:0 16px 60px rgba(0,0,0,.25)}
 .account-dialog::backdrop{background:rgba(10,15,20,.55)}
 .account-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 .account-head h2{margin:0;font-family:var(--font-ink);font-size:22px}
@@ -292,7 +292,7 @@ body{background:
   <header class="topbar">
     <div class="brand"><span class="brand-icon">✏️</span><span class="brand-name">اشرحلي</span></div>
     <div style="display:flex;align-items:center;gap:8px;min-width:0">
-      <button class="account-button" id="accountButton" type="button">حسابي / ملفاتي</button>
+      <button class="account-button" id="accountButton" type="button">تسجيل الدخول</button>
       <select id="modelSelect" aria-label="اختيار نموذج الذكاء الاصطناعي"><option value="openrouter/free">اختيار تلقائي (مجاني)</option></select>
     </div>
   </header>
