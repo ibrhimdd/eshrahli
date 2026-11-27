@@ -107,8 +107,8 @@ async function apiRequest(path, options = {}) {
     token = await currentUser.getIdToken(true);
     response = await send(token);
     if (response.status === 401) {
-      await signOut(auth);
-      throw new Error("تعذر تجديد جلسة الحساب. تم تسجيل خروجك بأمان؛ سجّل الدخول مرة أخرى.");
+      // Keep the Firebase user signed in; an API rejection is not a Firebase sign-out.
+      throw new Error("الخادم لم يقبل رمز الدخول حتى بعد تجديده. حسابك ما زال مسجلًا؛ حاول تحديث الصفحة، وإذا تكرر الخطأ سنراجع إعدادات Firebase على الخادم.");
     }
   }
   return response;
