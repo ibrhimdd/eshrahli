@@ -12,6 +12,11 @@ async function requireAuth(req, res, next) {
     return next();
   } catch (error) {
     const status = error.status || 401;
+    // Log only the Firebase error code/message, never the bearer token.
+    console.error("Firebase ID token verification failed:", {
+      code: error.code || "unknown",
+      message: error.message || "Unknown verification error"
+    });
     return res.status(status).json({
       error: status === 503 ? "خدمة الحسابات غير مهيأة على السيرفر." : "جلسة الدخول غير صالحة أو انتهت. سجّل الدخول مرة أخرى.",
       details: process.env.NODE_ENV === "production" ? undefined : error.message
