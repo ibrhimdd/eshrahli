@@ -45,6 +45,8 @@ async function extractPdf(buffer) {
   }
 
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  // Resolve the worker explicitly so Vercel can trace and package this file.
+  pdfjs.GlobalWorkerOptions.workerSrc = require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(buffer),
     useSystemFonts: true,
